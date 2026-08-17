@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using MyPrivateDrive.Application.Auth;
+using MyPrivateDrive.Application.Files;
 using MyPrivateDrive.Infrastructure.Auth;
 using MyPrivateDrive.Infrastructure.Persistence;
 
@@ -18,6 +19,10 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
 builder.Services.AddScoped<ITokenService, TokenService>();
+
+builder.Services.Configure<StorageSettings>(builder.Configuration.GetSection("Storage"));
+var storageSettings = builder.Configuration.GetSection("Storage").Get<StorageSettings>() ?? new StorageSettings();
+Directory.CreateDirectory(Path.Combine(builder.Environment.ContentRootPath, storageSettings.Root));
 
 var jwtSettings = builder.Configuration.GetSection("Jwt").Get<JwtSettings>()!;
 
