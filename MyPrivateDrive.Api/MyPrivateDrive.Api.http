@@ -42,6 +42,16 @@ Content-Type: application/json
   "email": "novo-email@example.com"
 }
 
+### Trocar senha
+PUT {{MyPrivateDrive.Api_HostAddress}}/api/users/me/password
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "currentPassword": "{{password}}",
+  "newPassword": "NovaSenha456!"
+}
+
 ### Criar pasta
 # @name createFolder
 POST {{MyPrivateDrive.Api_HostAddress}}/api/folders
@@ -89,6 +99,10 @@ Conteúdo de exemplo.
 
 ### Download do arquivo enviado acima
 GET {{MyPrivateDrive.Api_HostAddress}}/api/files/{{uploadFile.response.body.id}}/download
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### Preview do arquivo enviado acima (inline, sem forçar download)
+GET {{MyPrivateDrive.Api_HostAddress}}/api/files/{{uploadFile.response.body.id}}/preview
 Authorization: Bearer {{login.response.body.accessToken}}
 
 ### Excluir a própria conta

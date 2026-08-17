@@ -6,12 +6,14 @@ Uma nuvem privada pessoal, estilo Google Drive, construída como projeto de estu
 
 O objetivo é ter um lugar próprio para guardar arquivos, com login, upload/download, organização em pastas — e, no processo, aprender na prática backend, banco de dados, autenticação e infraestrutura com uma stack moderna em .NET.
 
-Funcionalidades do MVP:
+Funcionalidades:
 
 - Cadastro e login
 - Upload e download de arquivos
-- Listagem, organização e navegação em pastas (árvore)
-- Edição de perfil e exclusão de conta
+- Visualização de imagens, PDF e texto direto no site (duplo clique abre um preview, sem precisar baixar)
+- Listagem, organização e navegação em pastas (árvore, com breadcrumb e renomear)
+- Edição de perfil, troca de senha e exclusão de conta
+- Tema claro/escuro (padrão escuro), com preferência salva no navegador
 - Autenticação via JWT com renovação automática (refresh token)
 
 ## Arquitetura
@@ -39,7 +41,7 @@ myprivatedrive-web/             → Frontend React + Vite (SPA)
 | Banco de dados | PostgreSQL 16 |
 | ORM | Entity Framework Core |
 | Autenticação | JWT (access token) + Refresh Token, senhas com BCrypt |
-| Frontend | React 19 + Vite, react-router-dom, axios |
+| Frontend | React 19 + Vite, Tailwind CSS v4, react-router-dom, axios |
 | Proxy / servidor web | Nginx |
 | Containerização | Docker + Docker Compose |
 
@@ -108,10 +110,12 @@ Para derrubar tudo: `docker compose down` (os dados do banco e os arquivos envia
 | POST | `/api/auth/login` | não | Autentica e retorna tokens |
 | POST | `/api/auth/refresh` | não | Troca um refresh token válido por um novo par |
 | GET | `/api/users/me` | sim | Dados do usuário logado |
-| PUT | `/api/users/me` | sim | Atualiza e-mail e/ou senha |
+| PUT | `/api/users/me` | sim | Atualiza e-mail |
+| PUT | `/api/users/me/password` | sim | Troca a senha (exige a senha atual) |
 | DELETE | `/api/users/me` | sim | Exclui a conta |
 | POST | `/api/files/upload` | sim | Upload de arquivo (`multipart/form-data`, `folderId` opcional) |
 | GET | `/api/files/{id}/download` | sim | Download de um arquivo |
+| GET | `/api/files/{id}/preview` | sim | Visualiza o arquivo inline — imagens, PDF, texto (415 para outros tipos) |
 | POST | `/api/folders` | sim | Cria pasta |
 | GET | `/api/folders` | sim | Lista conteúdo da raiz |
 | GET | `/api/folders/{id}` | sim | Lista conteúdo de uma pasta |
@@ -151,6 +155,10 @@ O desenvolvimento seguiu uma ordem incremental, uma camada de cada vez, com test
 6. **Gerenciamento de pastas** — estrutura em árvore, prevenção de ciclos ao mover, exclusão bloqueada se não vazia.
 7. **Frontend React + Vite** — cliente HTTP centralizado com renovação automática de token, telas de login/cadastro e navegação de arquivos/pastas.
 8. **Docker + Docker Compose** — containerização da API e do frontend, proxy reverso via Nginx, migrations automáticas no startup.
+9. **Preview de arquivos e imagens** — endpoint dedicado que serve o arquivo inline (em vez de forçar download), com um modal no frontend para imagens, PDF e texto.
+10. **Aba de Configurações** — dados da conta e troca de senha (exigindo a senha atual).
+11. **Tema claro/escuro** — contexto React com preferência persistida no navegador, padrão escuro.
+12. **Refinamento visual geral** — adoção do Tailwind CSS, layout com barra lateral, breadcrumb de pastas, notificações toast e estados vazio/carregamento.
 
 ## Objetivos futuros
 
