@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api";
+import FilePreviewModal from "../components/FilePreviewModal";
 
 function formatSize(bytes) {
   if (bytes < 1024) return `${bytes} B`;
@@ -16,6 +17,7 @@ export default function Drive() {
   const [contents, setContents] = useState(null);
   const [error, setError] = useState("");
   const [newFolderName, setNewFolderName] = useState("");
+  const [previewFile, setPreviewFile] = useState(null);
 
   const load = useCallback(async () => {
     setError("");
@@ -125,12 +127,16 @@ export default function Drive() {
 
       <ul className="file-list">
         {contents.files.map((file) => (
-          <li key={file.id}>
+          <li key={file.id} onDoubleClick={() => setPreviewFile(file)}>
             <span>📄 {file.originalName} ({formatSize(file.sizeBytes)})</span>
             <button type="button" onClick={() => handleDownload(file)}>Baixar</button>
           </li>
         ))}
       </ul>
+
+      {previewFile && (
+        <FilePreviewModal file={previewFile} onClose={() => setPreviewFile(null)} />
+      )}
     </div>
   );
 }
