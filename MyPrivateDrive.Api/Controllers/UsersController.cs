@@ -37,14 +37,24 @@ public class UsersController(AppDbContext db) : ControllerBase
             user.Email = request.Email;
         }
 
-        if (!string.IsNullOrWhiteSpace(request.Password))
-        {
-            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
-        }
-
         await db.SaveChangesAsync();
 
         return Ok(new UserProfileDto(user.Id, user.Email, user.CreatedAt));
+    }
+
+    [HttpPut("me/password")]
+    public async Task<IActionResult> ChangePassword(ChangePasswordRequest request)
+    {
+        var user = await db.Users.FindAsync(CurrentUserId);
+        if (user is null) return NotFound();
+
+        if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash))
+            return BadRequest("Senha atual incorreta.");
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+        await db.SaveChangesAsync();
+
+        return NoContent();
     }
 
     [HttpDelete("me")]
