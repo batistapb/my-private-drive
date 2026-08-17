@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
+import { useToast } from "../ToastContext";
 
 function isPreviewable(contentType) {
   return contentType?.startsWith("image/") || contentType === "application/pdf" || contentType === "text/plain";
@@ -8,7 +9,7 @@ function isPreviewable(contentType) {
 export default function FilePreviewModal({ file, onClose }) {
   const [objectUrl, setObjectUrl] = useState(null);
   const [textContent, setTextContent] = useState(null);
-  const [error, setError] = useState("");
+  const { showToast } = useToast();
 
   useEffect(() => {
     if (!isPreviewable(file.contentType)) return;
@@ -28,7 +29,7 @@ export default function FilePreviewModal({ file, onClose }) {
           setObjectUrl(currentUrl);
         }
       } catch {
-        if (!cancelled) setError("Não foi possível carregar o preview.");
+        if (!cancelled) showToast("Não foi possível carregar o preview.", "error");
       }
     }
 
@@ -38,27 +39,43 @@ export default function FilePreviewModal({ file, onClose }) {
       cancelled = true;
       if (currentUrl) window.URL.revokeObjectURL(currentUrl);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file]);
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>{file.originalName}</h2>
-          <button type="button" onClick={onClose}>Fechar</button>
+    <div
+      className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-8"
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[90vh] max-w-[90vw] overflow-auto rounded-lg bg-white p-6 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <h2 className="text-lg font-semibold">{file.originalName}</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md bg-neutral-200 px-3 py-1 text-sm hover:bg-neutral-300 dark:bg-neutral-700 dark:hover:bg-neutral-600"
+          >
+            Fechar
+          </button>
         </div>
 
-        {!isPreviewable(file.contentType) && <p>Preview não disponível para este tipo de arquivo — baixe para visualizar.</p>}
-        {error && <p className="error">{error}</p>}
+        {!isPreviewable(file.contentType) && (
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">
+            Preview não disponível para este tipo de arquivo — baixe para visualizar.
+          </p>
+        )}
 
         {file.contentType?.startsWith("image/") && objectUrl && (
-          <img src={objectUrl} alt={file.originalName} className="preview-image" />
+          <img src={objectUrl} alt={file.originalName} className="max-h-[70vh] max-w-full" />
         )}
         {file.contentType === "application/pdf" && objectUrl && (
-          <iframe src={objectUrl} title={file.originalName} className="preview-pdf" />
+          <iframe src={objectUrl} title={file.originalName} className="h-[70vh] w-[min(80vw,800px)] border-0" />
         )}
         {file.contentType === "text/plain" && textContent !== null && (
-          <pre className="preview-text">{textContent}</pre>
+          <pre className="max-h-[70vh] w-[min(80vw,800px)] overflow-auto whitespace-pre-wrap text-sm">{textContent}</pre>
         )}
       </div>
     </div>
