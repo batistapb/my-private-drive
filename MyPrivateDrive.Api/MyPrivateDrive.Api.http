@@ -1,6 +1,96 @@
 @MyPrivateDrive.Api_HostAddress = http://localhost:5261
+@email = teste@example.com
+@password = Sup3rSecret!
 
-GET {{MyPrivateDrive.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+### Registrar
+POST {{MyPrivateDrive.Api_HostAddress}}/api/auth/register
+Content-Type: application/json
 
-###
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+### Login
+# @name login
+POST {{MyPrivateDrive.Api_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+### Renovar tokens (use o refreshToken retornado pelo login)
+POST {{MyPrivateDrive.Api_HostAddress}}/api/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{login.response.body.refreshToken}}"
+}
+
+### Perfil do usuário logado
+GET {{MyPrivateDrive.Api_HostAddress}}/api/users/me
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### Atualizar perfil
+PUT {{MyPrivateDrive.Api_HostAddress}}/api/users/me
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "email": "novo-email@example.com"
+}
+
+### Criar pasta
+# @name createFolder
+POST {{MyPrivateDrive.Api_HostAddress}}/api/folders
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Documentos",
+  "parentFolderId": null
+}
+
+### Listar conteúdo da raiz
+GET {{MyPrivateDrive.Api_HostAddress}}/api/folders
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### Listar conteúdo de uma pasta
+GET {{MyPrivateDrive.Api_HostAddress}}/api/folders/{{createFolder.response.body.id}}
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### Renomear pasta
+PUT {{MyPrivateDrive.Api_HostAddress}}/api/folders/{{createFolder.response.body.id}}
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Documentos Pessoais"
+}
+
+### Excluir pasta
+DELETE {{MyPrivateDrive.Api_HostAddress}}/api/folders/{{createFolder.response.body.id}}
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### Upload de arquivo
+# @name uploadFile
+POST {{MyPrivateDrive.Api_HostAddress}}/api/files/upload
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="file"; filename="exemplo.txt"
+Content-Type: text/plain
+
+Conteúdo de exemplo.
+--boundary--
+
+### Download do arquivo enviado acima
+GET {{MyPrivateDrive.Api_HostAddress}}/api/files/{{uploadFile.response.body.id}}/download
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### Excluir a própria conta
+DELETE {{MyPrivateDrive.Api_HostAddress}}/api/users/me
+Authorization: Bearer {{login.response.body.accessToken}}
