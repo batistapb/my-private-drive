@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using MyPrivateDrive.Application.Files;
 using MyPrivateDrive.Application.Folders;
@@ -12,9 +13,12 @@ namespace MyPrivateDrive.Api.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/folders")]
-public class FoldersController(AppDbContext db) : ControllerBase
+public class FoldersController(AppDbContext db, IContentTypeProvider contentTypeProvider) : ControllerBase
 {
     private Guid CurrentUserId => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+    private string GetContentType(string fileName) =>
+        contentTypeProvider.TryGetContentType(fileName, out var contentType) ? contentType : "application/octet-stream";
 
     [HttpGet]
     public Task<IActionResult> GetRoot() => GetContents(null);
@@ -38,10 +42,11 @@ public class FoldersController(AppDbContext db) : ControllerBase
             .Select(f => new FolderDto(f.Id, f.Name, f.ParentFolderId, f.CreatedAt))
             .ToListAsync();
 
-        var files = await db.Files
+        var files = (await db.Files
             .Where(f => f.OwnerId == CurrentUserId && f.FolderId == id)
-            .Select(f => new FileItemDto(f.Id, f.OriginalName, f.SizeBytes, f.FolderId, f.CreatedAt))
-            .ToListAsync();
+            .ToListAsync())
+            .Select(f => new FileItemDto(f.Id, f.OriginalName, f.SizeBytes, f.FolderId, f.CreatedAt, GetContentType(f.OriginalName)))
+            .ToList();
 
         return Ok(new FolderContentsDto(folderDto, subfolders, files));
     }
