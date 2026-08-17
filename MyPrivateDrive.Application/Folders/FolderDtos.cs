@@ -1,0 +1,11 @@
+using MyPrivateDrive.Application.Files;
+
+namespace MyPrivateDrive.Application.Folders;
+
+public record FolderDto(Guid Id, string Name, Guid? ParentFolderId, DateTime CreatedAt);
+
+public record CreateFolderRequest(string Name, Guid? ParentFolderId);
+
+public record UpdateFolderRequest(string? Name, Guid? ParentFolderId, bool MoveToRoot = false);
+
+public record FolderContentsDto(FolderDto? Folder, IReadOnlyList<FolderDto> Subfolders, IReadOnlyList<FileItemDto> Files);

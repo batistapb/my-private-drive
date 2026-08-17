@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using MyPrivateDrive.Application.Files;
 using MyPrivateDrive.Domain.Entities;
@@ -33,6 +34,10 @@ public class FilesController(AppDbContext db, IOptions<StorageSettings> storageO
         var extension = Path.GetExtension(file.FileName);
         if (BlockedExtensions.Contains(extension))
             return BadRequest("Tipo de arquivo não permitido.");
+
+        if (folderId is not null &&
+            !await db.Folders.AnyAsync(f => f.Id == folderId && f.OwnerId == CurrentUserId))
+            return BadRequest("Pasta inválida.");
 
         var storedName = $"{Guid.NewGuid()}{extension}";
         var fullPath = Path.Combine(StorageRoot, storedName);
