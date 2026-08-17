@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api";
+import { useTheme } from "../ThemeContext";
 
 function AccountSection() {
   const [profile, setProfile] = useState(null);
@@ -90,6 +91,20 @@ function SecuritySection() {
   );
 }
 
+function ThemeSection() {
+  const { theme, toggleTheme } = useTheme();
+
+  return (
+    <section>
+      <h2>Aparência</h2>
+      <label className="theme-toggle">
+        <input type="checkbox" checked={theme === "light"} onChange={toggleTheme} />
+        Tema claro
+      </label>
+    </section>
+  );
+}
+
 export default function Settings() {
   return (
     <div className="settings-page">
@@ -100,6 +115,7 @@ export default function Settings() {
 
       <AccountSection />
       <SecuritySection />
+      <ThemeSection />
     </div>
   );
 }
