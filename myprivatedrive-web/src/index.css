@@ -51,6 +51,41 @@ header {
   color: #d33;
 }
 
+.success {
+  color: #2a8;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.settings-page section {
+  margin-block: 1.5rem;
+  max-width: 320px;
+}
+
+.settings-page dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 1rem;
+}
+
+.settings-page dt {
+  font-weight: 600;
+}
+
+.settings-page dd {
+  margin: 0;
+}
+
+.settings-page form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
 .modal-overlay {
   position: fixed;
   inset: 0;

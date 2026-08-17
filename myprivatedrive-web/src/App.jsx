@@ -3,6 +3,7 @@ import ProtectedRoute from "./ProtectedRoute";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Drive from "./pages/Drive";
+import Settings from "./pages/Settings";
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
         <Route element={<ProtectedRoute />}>
           <Route path="/" element={<Drive />} />
           <Route path="/folders/:folderId" element={<Drive />} />
+          <Route path="/settings" element={<Settings />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

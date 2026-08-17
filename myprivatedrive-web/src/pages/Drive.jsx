@@ -91,7 +91,10 @@ export default function Drive() {
     <div className="drive-page">
       <header>
         <h1>{contents.folder ? contents.folder.name : "MyPrivateDrive"}</h1>
-        <button type="button" onClick={handleLogout}>Sair</button>
+        <div className="header-actions">
+          <Link to="/settings">Configurações</Link>
+          <button type="button" onClick={handleLogout}>Sair</button>
+        </div>
       </header>
 
       {contents.folder?.parentFolderId !== undefined && (
