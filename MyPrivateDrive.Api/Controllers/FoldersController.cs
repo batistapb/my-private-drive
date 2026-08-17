@@ -29,12 +29,14 @@ public class FoldersController(AppDbContext db, IContentTypeProvider contentType
     private async Task<IActionResult> GetContents(Guid? id)
     {
         FolderDto? folderDto = null;
+        var ancestors = new List<FolderDto>();
 
         if (id is not null)
         {
             var folder = await db.Folders.SingleOrDefaultAsync(f => f.Id == id && f.OwnerId == CurrentUserId);
             if (folder is null) return NotFound();
             folderDto = ToDto(folder);
+            ancestors = await GetAncestorsAsync(folder.ParentFolderId);
         }
 
         var subfolders = await db.Folders
@@ -48,7 +50,25 @@ public class FoldersController(AppDbContext db, IContentTypeProvider contentType
             .Select(f => new FileItemDto(f.Id, f.OriginalName, f.SizeBytes, f.FolderId, f.CreatedAt, GetContentType(f.OriginalName)))
             .ToList();
 
-        return Ok(new FolderContentsDto(folderDto, subfolders, files));
+        return Ok(new FolderContentsDto(folderDto, ancestors, subfolders, files));
+    }
+
+    private async Task<List<FolderDto>> GetAncestorsAsync(Guid? parentId)
+    {
+        var chain = new List<FolderDto>();
+        var currentId = parentId;
+
+        while (currentId is not null)
+        {
+            var folder = await db.Folders.SingleOrDefaultAsync(f => f.Id == currentId && f.OwnerId == CurrentUserId);
+            if (folder is null) break;
+
+            chain.Add(ToDto(folder));
+            currentId = folder.ParentFolderId;
+        }
+
+        chain.Reverse();
+        return chain;
     }
 
     [HttpPost]
