@@ -8,4 +8,5 @@ public class Folder
     public Guid OwnerId { get; set; }
     public Guid? OrganizationId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? DeletedAt { get; set; }
 }

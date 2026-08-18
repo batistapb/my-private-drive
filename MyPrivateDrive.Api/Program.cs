@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using MyPrivateDrive.Api.BackgroundServices;
 using MyPrivateDrive.Application.Auth;
 using MyPrivateDrive.Application.Files;
 using MyPrivateDrive.Infrastructure.Auth;
@@ -75,6 +76,8 @@ builder.Services.AddRateLimiter(options =>
 
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
+
+builder.Services.AddHostedService<TrashCleanupService>();
 
 var app = builder.Build();
 

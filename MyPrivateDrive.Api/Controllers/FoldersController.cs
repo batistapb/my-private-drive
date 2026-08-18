@@ -150,15 +150,29 @@ public class FoldersController(AppDbContext db, IContentTypeProvider contentType
         var folder = await db.Folders.SingleOrDefaultAsync(f => f.Id == id && f.OwnerId == CurrentUserId);
         if (folder is null) return NotFound();
 
-        var hasSubfolders = await db.Folders.AnyAsync(f => f.ParentFolderId == id);
-        var hasFiles = await db.Files.AnyAsync(f => f.FolderId == id);
-        if (hasSubfolders || hasFiles)
-            return Conflict("A pasta não está vazia.");
-
-        db.Folders.Remove(folder);
+        await SoftDeleteRecursiveAsync(folder.Id, DateTime.UtcNow);
         await db.SaveChangesAsync();
 
         return NoContent();
+    }
+
+    // Moving a folder to trash cascades to its whole subtree, mirroring Google Drive-style trash semantics.
+    private async Task SoftDeleteRecursiveAsync(Guid folderId, DateTime deletedAt)
+    {
+        var folder = await db.Folders.SingleAsync(f => f.Id == folderId);
+        folder.DeletedAt = deletedAt;
+
+        var subfolderIds = await db.Folders
+            .Where(f => f.ParentFolderId == folderId)
+            .Select(f => f.Id)
+            .ToListAsync();
+
+        foreach (var subfolderId in subfolderIds)
+            await SoftDeleteRecursiveAsync(subfolderId, deletedAt);
+
+        var files = await db.Files.Where(f => f.FolderId == folderId).ToListAsync();
+        foreach (var file in files)
+            file.DeletedAt = deletedAt;
     }
 
     private async Task<bool> IsDescendantAsync(Guid ancestorId, Guid candidateId)

@@ -9,4 +9,5 @@ public class FileItem
     public Guid OwnerId { get; set; }
     public Guid? FolderId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? DeletedAt { get; set; }
 }

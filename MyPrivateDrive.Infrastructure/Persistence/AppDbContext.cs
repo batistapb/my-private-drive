@@ -16,5 +16,10 @@ public class AppDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<User>().HasIndex(u => u.Email).IsUnique();
+
+        // Soft-delete (trash): every normal query excludes trashed rows automatically.
+        // Trash-specific queries opt back in with .IgnoreQueryFilters().
+        modelBuilder.Entity<Folder>().HasQueryFilter(f => f.DeletedAt == null);
+        modelBuilder.Entity<FileItem>().HasQueryFilter(f => f.DeletedAt == null);
     }
 }

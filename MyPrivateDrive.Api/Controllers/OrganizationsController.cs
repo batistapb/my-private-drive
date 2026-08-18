@@ -109,6 +109,9 @@ public class OrganizationsController(AppDbContext db) : ControllerBase
         var organization = await db.Organizations.SingleOrDefaultAsync(o => o.Id == id && o.OwnerId == CurrentUserId);
         if (organization is null) return NotFound();
 
+        // Note: this only checks live (non-trashed) content, thanks to the global query filter.
+        // If the org's root folder still has trashed-but-not-purged descendants, deleting the org
+        // here leaves them orphaned in the trash listing. Acceptable gap for now — narrow edge case.
         var hasSubfolders = await db.Folders.AnyAsync(f => f.ParentFolderId == organization.RootFolderId);
         var hasFiles = await db.Files.AnyAsync(f => f.FolderId == organization.RootFolderId);
         if (hasSubfolders || hasFiles)

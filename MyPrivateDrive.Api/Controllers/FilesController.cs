@@ -110,4 +110,16 @@ public class FilesController(AppDbContext db, IOptions<StorageSettings> storageO
         var stream = new FileStream(path, FileMode.Open, FileAccess.Read);
         return File(stream, contentType);
     }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        var fileItem = await db.Files.SingleOrDefaultAsync(f => f.Id == id && f.OwnerId == CurrentUserId);
+        if (fileItem is null) return NotFound();
+
+        fileItem.DeletedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+
+        return NoContent();
+    }
 }
