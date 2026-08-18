@@ -3,6 +3,9 @@ import { Link, useParams } from "react-router-dom";
 import { api } from "../api";
 import { useToast } from "../ToastContext";
 import Layout from "../components/Layout";
+import PageHeader from "../components/PageHeader";
+import { T } from "../styleTokens";
+import { FolderIcon } from "../components/icons";
 
 function FolderTreeNode({ node }) {
   const [expanded, setExpanded] = useState(true);
@@ -10,24 +13,25 @@ function FolderTreeNode({ node }) {
 
   return (
     <li>
-      <div className="flex items-center gap-1 py-1">
+      <div className="flex items-center gap-1.5 py-1.5">
         {hasChildren ? (
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
-            className="w-4 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+            className={"w-4 text-xs " + T.textTertiary}
           >
             {expanded ? "▾" : "▸"}
           </button>
         ) : (
           <span className="w-4" />
         )}
-        <Link to={`/folders/${node.id}`} className="hover:underline">
-          📁 {node.name}
+        <Link to={`/folders/${node.id}`} className="flex items-center gap-2 text-sm hover:underline">
+          <FolderIcon className={"h-3.5 w-3.5 shrink-0 " + T.accentText} />
+          {node.name}
         </Link>
       </div>
       {hasChildren && expanded && (
-        <ul className="ml-4 border-l border-neutral-200 pl-3 dark:border-neutral-700">
+        <ul className={"ml-4 border-l pl-3 " + T.borderSoft}>
           {node.children.map((child) => (
             <FolderTreeNode key={child.id} node={child} />
           ))}
@@ -52,15 +56,17 @@ export default function OrganizationMap() {
 
   return (
     <Layout>
-      <h1 className="mb-4 text-xl font-semibold">Mapa {tree ? `— ${tree.name}` : ""}</h1>
+      <PageHeader title={tree ? `Mapa — ${tree.name}` : "Mapa"} subtitle="Estrutura de pastas desta organização." />
 
-      {tree === null && <p className="text-sm text-neutral-500 dark:text-neutral-400">Carregando...</p>}
+      <div className={"overflow-hidden rounded-2xl border " + T.borderSoft + " " + T.surface + " p-5 shadow-sm"}>
+        {tree === null && <p className={"text-sm " + T.textSecondary}>Carregando...</p>}
 
-      {tree && (
-        <ul>
-          <FolderTreeNode node={tree} />
-        </ul>
-      )}
+        {tree && (
+          <ul>
+            <FolderTreeNode node={tree} />
+          </ul>
+        )}
+      </div>
     </Layout>
   );
 }

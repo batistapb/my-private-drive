@@ -3,8 +3,9 @@ import { Link } from "react-router-dom";
 import { api } from "../api";
 import { useToast } from "../ToastContext";
 import Layout from "../components/Layout";
-
-const primaryBtn = "rounded-md bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700";
+import PageHeader from "../components/PageHeader";
+import { T } from "../styleTokens";
+import { FolderIcon, FileIcon } from "../components/icons";
 
 export default function Favorites() {
   const { showToast } = useToast();
@@ -25,31 +26,37 @@ export default function Favorites() {
 
   return (
     <Layout>
-      <h1 className="mb-4 text-xl font-semibold">Favoritos</h1>
+      <PageHeader title="Favoritos" subtitle="Arquivos e pastas marcados com estrela, de todas as organizações." />
 
-      {items === null && <p className="text-sm text-neutral-500 dark:text-neutral-400">Carregando...</p>}
+      <div className={"overflow-hidden rounded-2xl border " + T.borderSoft + " " + T.surface + " shadow-sm"}>
+        {items === null && <p className={"px-5 py-8 text-center text-sm " + T.textSecondary}>Carregando...</p>}
 
-      {items && items.length === 0 && (
-        <p className="text-sm text-neutral-500 dark:text-neutral-400">Nenhum favorito ainda.</p>
-      )}
+        {items && items.length === 0 && (
+          <p className={"px-5 py-8 text-center text-sm " + T.textSecondary}>Nenhum favorito ainda.</p>
+        )}
 
-      {items && items.length > 0 && (
-        <ul className="divide-y divide-neutral-200 dark:divide-neutral-700">
-          {items.map((item) => (
-            <li key={item.id} className="flex items-center justify-between py-2">
-              <span className="flex-1">
-                {item.type === "folder" ? "📁" : "📄"} {item.name}
-              </span>
-              <Link
-                to={item.type === "folder" ? `/folders/${item.id}` : item.parentFolderId ? `/folders/${item.parentFolderId}` : "/"}
-                className={primaryBtn}
-              >
-                Abrir
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
+        {items && items.length > 0 && (
+          <ul>
+            {items.map((item) => {
+              const Icon = item.type === "folder" ? FolderIcon : FileIcon;
+              return (
+                <li key={item.id} className={"flex items-center justify-between border-b px-5 py-3 last:border-0 " + T.borderSoft}>
+                  <span className="flex flex-1 items-center gap-2.5">
+                    <Icon className={"h-4 w-4 shrink-0 " + T.textTertiary} />
+                    {item.name}
+                  </span>
+                  <Link
+                    to={item.type === "folder" ? `/folders/${item.id}` : item.parentFolderId ? `/folders/${item.parentFolderId}` : "/"}
+                    className={T.btnPrimarySm}
+                  >
+                    Abrir
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
     </Layout>
   );
 }

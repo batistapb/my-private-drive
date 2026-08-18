@@ -3,8 +3,9 @@ import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../api";
 import { useToast } from "../ToastContext";
 import Layout from "../components/Layout";
-
-const primaryBtn = "rounded-md bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700";
+import PageHeader from "../components/PageHeader";
+import { T } from "../styleTokens";
+import { FolderIcon, FileIcon } from "../components/icons";
 
 export default function Search() {
   const [searchParams] = useSearchParams();
@@ -27,36 +28,42 @@ export default function Search() {
 
   return (
     <Layout>
-      <h1 className="mb-4 text-xl font-semibold">Resultados para "{q}"</h1>
+      <PageHeader title={`Resultados para "${q}"`} />
 
-      {results === null && <p className="text-sm text-neutral-500 dark:text-neutral-400">Buscando...</p>}
+      <div className={"overflow-hidden rounded-2xl border " + T.borderSoft + " " + T.surface + " shadow-sm"}>
+        {results === null && <p className={"px-5 py-8 text-center text-sm " + T.textSecondary}>Buscando...</p>}
 
-      {results && results.length === 0 && (
-        <p className="text-sm text-neutral-500 dark:text-neutral-400">Nenhum resultado encontrado.</p>
-      )}
+        {results && results.length === 0 && (
+          <p className={"px-5 py-8 text-center text-sm " + T.textSecondary}>Nenhum resultado encontrado.</p>
+        )}
 
-      {results && results.length > 0 && (
-        <ul className="divide-y divide-neutral-200 dark:divide-neutral-700">
-          {results.map((item) => (
-            <li key={item.id} className="flex items-center justify-between py-2">
-              <div className="flex-1">
-                <div>
-                  {item.type === "folder" ? "📁" : "📄"} {item.name}
-                </div>
-                <div className="text-xs text-neutral-500 dark:text-neutral-400">
-                  {["MyPrivateDrive", ...item.pathNames].join(" / ")}
-                </div>
-              </div>
-              <Link
-                to={item.type === "folder" ? `/folders/${item.id}` : item.parentFolderId ? `/folders/${item.parentFolderId}` : "/"}
-                className={primaryBtn}
-              >
-                Abrir
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
+        {results && results.length > 0 && (
+          <ul>
+            {results.map((item) => {
+              const Icon = item.type === "folder" ? FolderIcon : FileIcon;
+              return (
+                <li key={item.id} className={"flex items-center justify-between border-b px-5 py-3 last:border-0 " + T.borderSoft}>
+                  <div className="flex flex-1 items-center gap-2.5">
+                    <Icon className={"h-4 w-4 shrink-0 " + T.textTertiary} />
+                    <div className="min-w-0">
+                      <div className="truncate">{item.name}</div>
+                      <div className={"truncate text-xs " + T.textTertiary}>
+                        {["MyPrivateDrive", ...item.pathNames].join(" / ")}
+                      </div>
+                    </div>
+                  </div>
+                  <Link
+                    to={item.type === "folder" ? `/folders/${item.id}` : item.parentFolderId ? `/folders/${item.parentFolderId}` : "/"}
+                    className={T.btnPrimarySm}
+                  >
+                    Abrir
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
     </Layout>
   );
 }
