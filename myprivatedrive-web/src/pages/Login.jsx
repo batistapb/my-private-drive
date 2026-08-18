@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api";
+import GradientWaves from "../components/GradientWaves/GradientWaves";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -23,8 +24,11 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-white text-neutral-900 dark:bg-neutral-900 dark:text-neutral-100">
-      <div className="w-full max-w-sm rounded-lg border border-neutral-200 p-8 dark:border-neutral-700">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-neutral-950 text-neutral-100">
+      <div className="absolute inset-0">
+        <GradientWaves horizonColor="#0a0f2b" waveColor="#2563eb" crestColor="#93c5fd" />
+      </div>
+      <div className="relative z-10 w-full max-w-sm rounded-lg border border-white/10 bg-neutral-950/50 p-8 backdrop-blur-md">
         <h1 className="mb-6 text-xl font-semibold">Entrar</h1>
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <input
@@ -33,7 +37,7 @@ export default function Login() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-600 dark:bg-neutral-800"
+            className="rounded-md border border-white/15 bg-white/5 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none"
           />
           <input
             type="password"
@@ -41,15 +45,15 @@ export default function Login() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-600 dark:bg-neutral-800"
+            className="rounded-md border border-white/15 bg-white/5 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none"
           />
-          {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+          {error && <p className="text-sm text-red-400">{error}</p>}
           <button type="submit" className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700">
             Entrar
           </button>
         </form>
-        <p className="mt-4 text-sm text-neutral-500 dark:text-neutral-400">
-          Não tem conta? <Link to="/register" className="text-blue-600 hover:underline dark:text-blue-400">Cadastre-se</Link>
+        <p className="mt-4 text-sm text-neutral-400">
+          Não tem conta? <Link to="/register" className="text-blue-400 hover:underline">Cadastre-se</Link>
         </p>
       </div>
     </div>
