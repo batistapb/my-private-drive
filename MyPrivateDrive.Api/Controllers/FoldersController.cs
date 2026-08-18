@@ -129,6 +129,8 @@ public class FoldersController(AppDbContext db, IContentTypeProvider contentType
                 if (newParentId == folder.Id)
                     return BadRequest("Uma pasta não pode ser pai de si mesma.");
 
+                Guid? newOrganizationId = null;
+
                 if (newParentId is not null)
                 {
                     var newParent = await db.Folders.SingleOrDefaultAsync(f => f.Id == newParentId && f.OwnerId == CurrentUserId);
@@ -136,9 +138,17 @@ public class FoldersController(AppDbContext db, IContentTypeProvider contentType
 
                     if (await IsDescendantAsync(folder.Id, newParent.Id))
                         return BadRequest("Não é possível mover uma pasta para dentro de si mesma.");
+
+                    newOrganizationId = newParent.OrganizationId;
                 }
 
                 folder.ParentFolderId = newParentId;
+
+                // Moving a folder into (or out of) an organization must cascade OrganizationId
+                // down its whole subtree, or descendants would silently keep the old org
+                // (invisible in the new org's map, still counted in the old org's content check).
+                if (newOrganizationId != folder.OrganizationId)
+                    await UpdateOrganizationRecursiveAsync(folder.Id, newOrganizationId);
             }
         }
 
@@ -180,6 +190,20 @@ public class FoldersController(AppDbContext db, IContentTypeProvider contentType
         var files = await db.Files.Where(f => f.FolderId == folderId).ToListAsync();
         foreach (var file in files)
             file.DeletedAt = deletedAt;
+    }
+
+    private async Task UpdateOrganizationRecursiveAsync(Guid folderId, Guid? organizationId)
+    {
+        var folder = await db.Folders.SingleAsync(f => f.Id == folderId);
+        folder.OrganizationId = organizationId;
+
+        var subfolderIds = await db.Folders
+            .Where(f => f.ParentFolderId == folderId)
+            .Select(f => f.Id)
+            .ToListAsync();
+
+        foreach (var subfolderId in subfolderIds)
+            await UpdateOrganizationRecursiveAsync(subfolderId, organizationId);
     }
 
     private async Task<bool> IsDescendantAsync(Guid ancestorId, Guid candidateId)
