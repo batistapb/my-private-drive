@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -13,6 +14,7 @@ namespace MyPrivateDrive.Api.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/files")]
+[EnableRateLimiting("global")]
 public class FilesController(AppDbContext db, IOptions<StorageSettings> storageOptions, IWebHostEnvironment env, IContentTypeProvider contentTypeProvider) : ControllerBase
 {
     private static readonly HashSet<string> BlockedExtensions = new(StringComparer.OrdinalIgnoreCase)

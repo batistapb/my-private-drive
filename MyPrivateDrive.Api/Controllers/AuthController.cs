@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using MyPrivateDrive.Application.Auth;
@@ -9,6 +10,7 @@ namespace MyPrivateDrive.Api.Controllers;
 
 [ApiController]
 [Route("api/auth")]
+[EnableRateLimiting("auth")]
 public class AuthController(AppDbContext db, ITokenService tokenService, IOptions<JwtSettings> jwtOptions) : ControllerBase
 {
     private readonly JwtSettings _jwtSettings = jwtOptions.Value;

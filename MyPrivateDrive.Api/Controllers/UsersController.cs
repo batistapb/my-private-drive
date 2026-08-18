@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using MyPrivateDrive.Application.Users;
 using MyPrivateDrive.Infrastructure.Persistence;
@@ -10,6 +11,7 @@ namespace MyPrivateDrive.Api.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/users")]
+[EnableRateLimiting("global")]
 public class UsersController(AppDbContext db) : ControllerBase
 {
     private Guid CurrentUserId => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);

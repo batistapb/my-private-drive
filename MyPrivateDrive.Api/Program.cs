@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -57,6 +58,24 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("auth", opt =>
+    {
+        opt.PermitLimit = 5;
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.QueueLimit = 0;
+    });
+
+    options.AddFixedWindowLimiter("global", opt =>
+    {
+        opt.PermitLimit = 100;
+        opt.Window = TimeSpan.FromMinutes(1);
+    });
+
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -73,6 +92,8 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseCors(FrontendCorsPolicy);
+
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();

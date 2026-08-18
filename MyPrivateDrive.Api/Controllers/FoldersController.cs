@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using MyPrivateDrive.Application.Files;
@@ -13,6 +14,7 @@ namespace MyPrivateDrive.Api.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/folders")]
+[EnableRateLimiting("global")]
 public class FoldersController(AppDbContext db, IContentTypeProvider contentTypeProvider) : ControllerBase
 {
     private Guid CurrentUserId => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
