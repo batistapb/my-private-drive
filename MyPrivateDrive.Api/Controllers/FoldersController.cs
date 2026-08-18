@@ -45,13 +45,13 @@ public class FoldersController(AppDbContext db, IContentTypeProvider contentType
         // must be excluded — they surface via the organizations list/tabs, not "Meus Arquivos".
         var subfolders = await db.Folders
             .Where(f => f.OwnerId == CurrentUserId && f.ParentFolderId == id && (id != null || f.OrganizationId == null))
-            .Select(f => new FolderDto(f.Id, f.Name, f.ParentFolderId, f.OrganizationId, f.CreatedAt))
+            .Select(f => new FolderDto(f.Id, f.Name, f.ParentFolderId, f.OrganizationId, f.CreatedAt, f.IsFavorite))
             .ToListAsync();
 
         var files = (await db.Files
             .Where(f => f.OwnerId == CurrentUserId && f.FolderId == id)
             .ToListAsync())
-            .Select(f => new FileItemDto(f.Id, f.OriginalName, f.SizeBytes, f.FolderId, f.CreatedAt, GetContentType(f.OriginalName)))
+            .Select(f => new FileItemDto(f.Id, f.OriginalName, f.SizeBytes, f.FolderId, f.CreatedAt, GetContentType(f.OriginalName), f.IsFavorite))
             .ToList();
 
         return Ok(new FolderContentsDto(folderDto, ancestors, subfolders, files));
@@ -189,5 +189,17 @@ public class FoldersController(AppDbContext db, IContentTypeProvider contentType
         return false;
     }
 
-    private static FolderDto ToDto(Folder f) => new(f.Id, f.Name, f.ParentFolderId, f.OrganizationId, f.CreatedAt);
+    private static FolderDto ToDto(Folder f) => new(f.Id, f.Name, f.ParentFolderId, f.OrganizationId, f.CreatedAt, f.IsFavorite);
+
+    [HttpPut("{id:guid}/favorite")]
+    public async Task<IActionResult> ToggleFavorite(Guid id)
+    {
+        var folder = await db.Folders.SingleOrDefaultAsync(f => f.Id == id && f.OwnerId == CurrentUserId);
+        if (folder is null) return NotFound();
+
+        folder.IsFavorite = !folder.IsFavorite;
+        await db.SaveChangesAsync();
+
+        return Ok(ToDto(folder));
+    }
 }

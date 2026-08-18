@@ -73,7 +73,7 @@ public class FilesController(AppDbContext db, IOptions<StorageSettings> storageO
         db.Files.Add(fileItem);
         await db.SaveChangesAsync();
 
-        return Ok(new FileItemDto(fileItem.Id, fileItem.OriginalName, fileItem.SizeBytes, fileItem.FolderId, fileItem.CreatedAt, GetContentType(fileItem.OriginalName)));
+        return Ok(new FileItemDto(fileItem.Id, fileItem.OriginalName, fileItem.SizeBytes, fileItem.FolderId, fileItem.CreatedAt, GetContentType(fileItem.OriginalName), fileItem.IsFavorite));
     }
 
     [HttpGet("{id:guid}/download")]
@@ -121,5 +121,17 @@ public class FilesController(AppDbContext db, IOptions<StorageSettings> storageO
         await db.SaveChangesAsync();
 
         return NoContent();
+    }
+
+    [HttpPut("{id:guid}/favorite")]
+    public async Task<IActionResult> ToggleFavorite(Guid id)
+    {
+        var fileItem = await db.Files.SingleOrDefaultAsync(f => f.Id == id && f.OwnerId == CurrentUserId);
+        if (fileItem is null) return NotFound();
+
+        fileItem.IsFavorite = !fileItem.IsFavorite;
+        await db.SaveChangesAsync();
+
+        return Ok(new FileItemDto(fileItem.Id, fileItem.OriginalName, fileItem.SizeBytes, fileItem.FolderId, fileItem.CreatedAt, GetContentType(fileItem.OriginalName), fileItem.IsFavorite));
     }
 }

@@ -10,4 +10,5 @@ public class FileItem
     public Guid? FolderId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? DeletedAt { get; set; }
+    public bool IsFavorite { get; set; }
 }
