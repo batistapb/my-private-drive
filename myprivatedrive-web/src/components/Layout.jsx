@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { NavLink, useNavigate, useParams } from "react-router-dom";
+import { NavLink, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { api } from "../api";
 import { useToast } from "../ToastContext";
 
@@ -19,10 +19,27 @@ export default function Layout({ children }) {
   const navigate = useNavigate();
   const { folderId } = useParams();
   const { showToast } = useToast();
+  const [searchParams] = useSearchParams();
 
   const [organizations, setOrganizations] = useState([]);
   const [creatingOrg, setCreatingOrg] = useState(false);
   const [newOrgName, setNewOrgName] = useState("");
+  const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
+
+  useEffect(() => {
+    setSearchTerm(searchParams.get("q") || "");
+  }, [searchParams]);
+
+  useEffect(() => {
+    const trimmed = searchTerm.trim();
+    if (!trimmed) return;
+
+    const handle = setTimeout(() => {
+      navigate(`/search?q=${encodeURIComponent(trimmed)}`);
+    }, 300);
+
+    return () => clearTimeout(handle);
+  }, [searchTerm, navigate]);
 
   const loadOrganizations = useCallback(async () => {
     try {
@@ -145,7 +162,16 @@ export default function Layout({ children }) {
         </button>
       </aside>
 
-      <main className="flex-1 overflow-auto p-6">{children}</main>
+      <main className="flex-1 overflow-auto p-6">
+        <input
+          type="search"
+          placeholder="Buscar arquivos e pastas..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="mb-4 w-full max-w-md rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm dark:border-neutral-600 dark:bg-neutral-800"
+        />
+        {children}
+      </main>
     </div>
   );
 }
