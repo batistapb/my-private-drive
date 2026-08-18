@@ -70,6 +70,9 @@ export default function Layout({ children }) {
           <NavLink to="/settings" className={navLinkClass}>
             Configurações
           </NavLink>
+          <NavLink to="/trash" className={navLinkClass}>
+            Lixeira
+          </NavLink>
         </nav>
 
         <div className="mt-6">

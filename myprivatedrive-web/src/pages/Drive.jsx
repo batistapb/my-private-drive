@@ -129,6 +129,26 @@ export default function Drive() {
     }
   }
 
+  async function handleDeleteFolder(folder) {
+    try {
+      await api.delete(`/folders/${folder.id}`);
+      showToast(`Pasta "${folder.name}" movida para a lixeira.`);
+      await load();
+    } catch {
+      showToast("Falha ao excluir pasta.", "error");
+    }
+  }
+
+  async function handleDeleteFile(file) {
+    try {
+      await api.delete(`/files/${file.id}`);
+      showToast(`"${file.originalName}" movido para a lixeira.`);
+      await load();
+    } catch {
+      showToast("Falha ao excluir arquivo.", "error");
+    }
+  }
+
   const isEmpty = contents && contents.subfolders.length === 0 && contents.files.length === 0;
 
   return (
@@ -187,6 +207,9 @@ export default function Drive() {
                   <button type="button" onClick={() => startRename(folder)} className="text-sm text-neutral-500 hover:underline dark:text-neutral-400">
                     Renomear
                   </button>
+                  <button type="button" onClick={() => handleDeleteFolder(folder)} className="ml-3 text-sm text-red-600 hover:underline dark:text-red-400">
+                    Excluir
+                  </button>
                 </>
               )}
             </li>
@@ -201,6 +224,9 @@ export default function Drive() {
               <span className="flex-1">📄 {file.originalName} ({formatSize(file.sizeBytes)})</span>
               <button type="button" onClick={() => handleDownload(file)} className="text-sm text-blue-600 hover:underline dark:text-blue-400">
                 Baixar
+              </button>
+              <button type="button" onClick={() => handleDeleteFile(file)} className="ml-3 text-sm text-red-600 hover:underline dark:text-red-400">
+                Excluir
               </button>
             </li>
           ))}
