@@ -52,6 +52,7 @@ export default function Drive() {
   const [movingFolderId, setMovingFolderId] = useState(null);
   const [organizations, setOrganizations] = useState([]);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const dragCounterRef = useRef(0);
 
   const load = useCallback(async () => {
     try {
@@ -101,18 +102,30 @@ export default function Drive() {
     event.target.value = "";
   }
 
+  // Drag events fire on every element boundary the cursor crosses, not just when leaving the
+  // whole zone, so a plain boolean flickers as the cursor moves over child elements. A counter
+  // (incremented on enter, decremented on leave, reset on drop) only clears the highlight once
+  // the cursor has actually left every nested element.
+  function handleDragEnter(event) {
+    event.preventDefault();
+    dragCounterRef.current += 1;
+    setIsDraggingOver(true);
+  }
+
   function handleDragOver(event) {
     event.preventDefault();
-    setIsDraggingOver(true);
+    if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
   }
 
   function handleDragLeave(event) {
     event.preventDefault();
-    setIsDraggingOver(false);
+    dragCounterRef.current = Math.max(0, dragCounterRef.current - 1);
+    if (dragCounterRef.current === 0) setIsDraggingOver(false);
   }
 
   async function handleDrop(event) {
     event.preventDefault();
+    dragCounterRef.current = 0;
     setIsDraggingOver(false);
 
     const files = Array.from(event.dataTransfer.files || []);
@@ -228,41 +241,41 @@ export default function Drive() {
 
   return (
     <Layout>
-      <div className="mb-7">
-        <Breadcrumb ancestors={contents?.ancestors ?? []} current={contents?.folder ?? null} />
-        <h1 className="text-[26px] font-bold tracking-tight">{pageName}</h1>
-      </div>
-
-      <div className="mb-5 flex flex-wrap items-center gap-2.5">
-        <form onSubmit={handleCreateFolder} className="flex gap-2">
-          <input
-            type="text"
-            placeholder="Nova pasta"
-            value={newFolderName}
-            onChange={(e) => setNewFolderName(e.target.value)}
-            className={T.input}
-          />
-          <button type="submit" className={T.btnGhost}>Criar pasta</button>
-        </form>
-
-        <button type="button" onClick={() => fileInputRef.current?.click()} className={T.btnPrimary}>
-          <UploadCloudIcon className="h-3.5 w-3.5" />
-          Enviar arquivo
-        </button>
-        <input ref={fileInputRef} type="file" onChange={handleUpload} hidden />
-      </div>
-
       <div
+        onDragEnter={handleDragEnter}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={
-          "min-h-[8rem] overflow-hidden rounded-2xl border-2 transition-colors " +
-          (isDraggingOver
-            ? "border-[#3b6fef] bg-[#3b6fef]/8 dark:border-[#5b8cff] dark:bg-[#5b8cff]/12"
-            : "border-dashed border-transparent")
-        }
+        className="relative min-h-[calc(100vh-8rem)] rounded-2xl"
       >
+        {isDraggingOver && (
+          <div className="pointer-events-none absolute -inset-3 z-10 rounded-2xl border-2 border-dashed border-[#3b6fef] bg-[#3b6fef]/5 dark:border-[#5b8cff] dark:bg-[#5b8cff]/8" />
+        )}
+
+        <div className="mb-7">
+          <Breadcrumb ancestors={contents?.ancestors ?? []} current={contents?.folder ?? null} />
+          <h1 className="text-[26px] font-bold tracking-tight">{pageName}</h1>
+        </div>
+
+        <div className="mb-5 flex flex-wrap items-center gap-2.5">
+          <form onSubmit={handleCreateFolder} className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Nova pasta"
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+              className={T.input}
+            />
+            <button type="submit" className={T.btnGhost}>Criar pasta</button>
+          </form>
+
+          <button type="button" onClick={() => fileInputRef.current?.click()} className={T.btnPrimary}>
+            <UploadCloudIcon className="h-3.5 w-3.5" />
+            Enviar arquivo
+          </button>
+          <input ref={fileInputRef} type="file" onChange={handleUpload} hidden />
+        </div>
+
         <div className={"overflow-hidden rounded-2xl border " + T.borderSoft + " " + T.surface + " shadow-sm"}>
           {contents === null && <LoadingSkeleton />}
 
