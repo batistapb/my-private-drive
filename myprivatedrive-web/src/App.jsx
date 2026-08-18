@@ -6,6 +6,7 @@ import Drive from "./pages/Drive";
 import Settings from "./pages/Settings";
 import OrganizationMap from "./pages/OrganizationMap";
 import Trash from "./pages/Trash";
+import Favorites from "./pages/Favorites";
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
           <Route path="/settings" element={<Settings />} />
           <Route path="/organizations/:orgId/map" element={<OrganizationMap />} />
           <Route path="/trash" element={<Trash />} />
+          <Route path="/favorites" element={<Favorites />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

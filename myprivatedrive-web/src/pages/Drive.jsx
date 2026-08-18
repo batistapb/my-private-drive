@@ -149,6 +149,24 @@ export default function Drive() {
     }
   }
 
+  async function handleToggleFolderFavorite(folder) {
+    try {
+      await api.put(`/folders/${folder.id}/favorite`);
+      await load();
+    } catch {
+      showToast("Falha ao atualizar favorito.", "error");
+    }
+  }
+
+  async function handleToggleFileFavorite(file) {
+    try {
+      await api.put(`/files/${file.id}/favorite`);
+      await load();
+    } catch {
+      showToast("Falha ao atualizar favorito.", "error");
+    }
+  }
+
   const isEmpty = contents && contents.subfolders.length === 0 && contents.files.length === 0;
 
   return (
@@ -203,7 +221,15 @@ export default function Drive() {
                 </form>
               ) : (
                 <>
-                  <Link to={`/folders/${folder.id}`} className="flex-1 hover:underline">📁 {folder.name}</Link>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleFolderFavorite(folder)}
+                    className="text-amber-400"
+                    title={folder.isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                  >
+                    {folder.isFavorite ? "★" : "☆"}
+                  </button>
+                  <Link to={`/folders/${folder.id}`} className="ml-2 flex-1 hover:underline">📁 {folder.name}</Link>
                   <button type="button" onClick={() => startRename(folder)} className="text-sm text-neutral-500 hover:underline dark:text-neutral-400">
                     Renomear
                   </button>
@@ -221,7 +247,15 @@ export default function Drive() {
               onDoubleClick={() => setPreviewFile(file)}
               className="flex items-center justify-between py-2"
             >
-              <span className="flex-1">📄 {file.originalName} ({formatSize(file.sizeBytes)})</span>
+              <button
+                type="button"
+                onClick={() => handleToggleFileFavorite(file)}
+                className="text-amber-400"
+                title={file.isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+              >
+                {file.isFavorite ? "★" : "☆"}
+              </button>
+              <span className="ml-2 flex-1">📄 {file.originalName} ({formatSize(file.sizeBytes)})</span>
               <button type="button" onClick={() => handleDownload(file)} className="text-sm text-blue-600 hover:underline dark:text-blue-400">
                 Baixar
               </button>

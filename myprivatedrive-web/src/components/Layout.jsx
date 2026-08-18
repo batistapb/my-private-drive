@@ -70,6 +70,9 @@ export default function Layout({ children }) {
           <NavLink to="/settings" className={navLinkClass}>
             Configurações
           </NavLink>
+          <NavLink to="/favorites" className={navLinkClass}>
+            Favoritos
+          </NavLink>
           <NavLink to="/trash" className={navLinkClass}>
             Lixeira
           </NavLink>
