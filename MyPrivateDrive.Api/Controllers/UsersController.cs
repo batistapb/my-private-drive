@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using MyPrivateDrive.Application.Activity;
 using MyPrivateDrive.Application.Users;
 using MyPrivateDrive.Infrastructure.Persistence;
 
@@ -12,7 +13,7 @@ namespace MyPrivateDrive.Api.Controllers;
 [ApiController]
 [Route("api/users")]
 [EnableRateLimiting("global")]
-public class UsersController(AppDbContext db) : ControllerBase
+public class UsersController(AppDbContext db, IActivityLogger activityLogger) : ControllerBase
 {
     private Guid CurrentUserId => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
@@ -55,6 +56,7 @@ public class UsersController(AppDbContext db) : ControllerBase
 
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
         await db.SaveChangesAsync();
+        await activityLogger.LogAsync(CurrentUserId, "PasswordChange");
 
         return NoContent();
     }

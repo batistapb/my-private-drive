@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using MyPrivateDrive.Application.Activity;
 using MyPrivateDrive.Application.Files;
 using MyPrivateDrive.Domain.Entities;
 using MyPrivateDrive.Infrastructure.Persistence;
@@ -15,7 +16,7 @@ namespace MyPrivateDrive.Api.Controllers;
 [ApiController]
 [Route("api/files")]
 [EnableRateLimiting("global")]
-public class FilesController(AppDbContext db, IOptions<StorageSettings> storageOptions, IWebHostEnvironment env, IContentTypeProvider contentTypeProvider) : ControllerBase
+public class FilesController(AppDbContext db, IOptions<StorageSettings> storageOptions, IWebHostEnvironment env, IContentTypeProvider contentTypeProvider, IActivityLogger activityLogger) : ControllerBase
 {
     private static readonly HashSet<string> BlockedExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -72,6 +73,7 @@ public class FilesController(AppDbContext db, IOptions<StorageSettings> storageO
 
         db.Files.Add(fileItem);
         await db.SaveChangesAsync();
+        await activityLogger.LogAsync(CurrentUserId, "Upload", fileItem.OriginalName);
 
         return Ok(new FileItemDto(fileItem.Id, fileItem.OriginalName, fileItem.SizeBytes, fileItem.FolderId, fileItem.CreatedAt, GetContentType(fileItem.OriginalName), fileItem.IsFavorite));
     }
@@ -86,6 +88,8 @@ public class FilesController(AppDbContext db, IOptions<StorageSettings> storageO
         var path = Path.Combine(StorageRoot, fileItem.StoredName);
         if (!System.IO.File.Exists(path))
             return NotFound();
+
+        await activityLogger.LogAsync(CurrentUserId, "Download", fileItem.OriginalName);
 
         var stream = new FileStream(path, FileMode.Open, FileAccess.Read);
         return File(stream, "application/octet-stream", fileItem.OriginalName);
@@ -119,6 +123,7 @@ public class FilesController(AppDbContext db, IOptions<StorageSettings> storageO
 
         fileItem.DeletedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
+        await activityLogger.LogAsync(CurrentUserId, "Delete", fileItem.OriginalName);
 
         return NoContent();
     }

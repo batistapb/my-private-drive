@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using MyPrivateDrive.Application.Activity;
 using MyPrivateDrive.Application.Auth;
 using MyPrivateDrive.Domain.Entities;
 using MyPrivateDrive.Infrastructure.Persistence;
@@ -11,7 +12,7 @@ namespace MyPrivateDrive.Api.Controllers;
 [ApiController]
 [Route("api/auth")]
 [EnableRateLimiting("auth")]
-public class AuthController(AppDbContext db, ITokenService tokenService, IOptions<JwtSettings> jwtOptions) : ControllerBase
+public class AuthController(AppDbContext db, ITokenService tokenService, IOptions<JwtSettings> jwtOptions, IActivityLogger activityLogger) : ControllerBase
 {
     private readonly JwtSettings _jwtSettings = jwtOptions.Value;
 
@@ -41,7 +42,9 @@ public class AuthController(AppDbContext db, ITokenService tokenService, IOption
         if (user is null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             return Unauthorized();
 
-        return Ok(await IssueTokensAsync(user));
+        var response = await IssueTokensAsync(user);
+        await activityLogger.LogAsync(user.Id, "Login");
+        return Ok(response);
     }
 
     [HttpPost("refresh")]

@@ -5,8 +5,10 @@ using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using MyPrivateDrive.Api.BackgroundServices;
+using MyPrivateDrive.Application.Activity;
 using MyPrivateDrive.Application.Auth;
 using MyPrivateDrive.Application.Files;
+using MyPrivateDrive.Infrastructure.Activity;
 using MyPrivateDrive.Infrastructure.Auth;
 using MyPrivateDrive.Infrastructure.Persistence;
 
@@ -22,6 +24,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IActivityLogger, ActivityLogger>();
 
 builder.Services.AddSingleton<IContentTypeProvider, FileExtensionContentTypeProvider>();
 

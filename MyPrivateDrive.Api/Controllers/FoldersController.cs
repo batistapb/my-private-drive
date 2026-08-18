@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
+using MyPrivateDrive.Application.Activity;
 using MyPrivateDrive.Application.Files;
 using MyPrivateDrive.Application.Folders;
 using MyPrivateDrive.Domain.Entities;
@@ -15,7 +16,7 @@ namespace MyPrivateDrive.Api.Controllers;
 [ApiController]
 [Route("api/folders")]
 [EnableRateLimiting("global")]
-public class FoldersController(AppDbContext db, IContentTypeProvider contentTypeProvider) : ControllerBase
+public class FoldersController(AppDbContext db, IContentTypeProvider contentTypeProvider, IActivityLogger activityLogger) : ControllerBase
 {
     private Guid CurrentUserId => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
@@ -110,6 +111,8 @@ public class FoldersController(AppDbContext db, IContentTypeProvider contentType
         var folder = await db.Folders.SingleOrDefaultAsync(f => f.Id == id && f.OwnerId == CurrentUserId);
         if (folder is null) return NotFound();
 
+        var isRename = !string.IsNullOrWhiteSpace(request.Name) && request.Name != folder.Name;
+        var previousName = folder.Name;
         if (!string.IsNullOrWhiteSpace(request.Name))
             folder.Name = request.Name;
 
@@ -141,6 +144,9 @@ public class FoldersController(AppDbContext db, IContentTypeProvider contentType
 
         await db.SaveChangesAsync();
 
+        if (isRename)
+            await activityLogger.LogAsync(CurrentUserId, "Rename", $"{previousName} -> {folder.Name}");
+
         return Ok(ToDto(folder));
     }
 
@@ -152,6 +158,7 @@ public class FoldersController(AppDbContext db, IContentTypeProvider contentType
 
         await SoftDeleteRecursiveAsync(folder.Id, DateTime.UtcNow);
         await db.SaveChangesAsync();
+        await activityLogger.LogAsync(CurrentUserId, "Delete", folder.Name);
 
         return NoContent();
     }
