@@ -5,6 +5,7 @@ services:
       dockerfile: MyPrivateDrive.Api/Dockerfile
     environment:
       - ConnectionStrings__Default=Host=db;Database=myprivatedrive;Username=postgres;Password=postgres
+      - Jwt__Secret=${JWT_SECRET:?Set JWT_SECRET in a .env file (see .env.example)}
     depends_on:
       db:
         condition: service_healthy

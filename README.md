@@ -63,6 +63,14 @@ docker-compose.yml              # api + db + nginx
 
 Sobe API, PostgreSQL e o frontend (servido via Nginx) juntos, com migrations aplicadas automaticamente no start da API.
 
+Antes do primeiro `up`, crie o arquivo de segredo do JWT (não é versionado):
+
+```bash
+cp .env.example .env
+# edite .env e defina JWT_SECRET com um valor aleatório, ex.:
+openssl rand -base64 48
+```
+
 ```bash
 docker compose up --build
 ```
@@ -132,7 +140,7 @@ As chaves relevantes ficam em `MyPrivateDrive.Api/appsettings.json`:
 - `Jwt:Secret`, `Jwt:Issuer`, `Jwt:Audience`, `Jwt:AccessTokenMinutes`, `Jwt:RefreshTokenDays`
 - `Storage:Root`, `Storage:MaxSizeBytes` — pasta e limite de tamanho para os arquivos enviados
 
-> Os valores versionados são de **desenvolvimento**. Para qualquer uso além de estudo local, troque o `Jwt:Secret` e as credenciais do banco, preferencialmente via variáveis de ambiente ou `dotnet user-secrets`.
+`Jwt:Secret` **não é versionado** — o `appsettings.json` traz o campo vazio de propósito. Em Docker Compose ele vem da variável de ambiente `JWT_SECRET` (arquivo `.env`, veja `.env.example`); rodando localmente (`dotnet run`), defina-o em `MyPrivateDrive.Api/appsettings.Development.json` (também não versionado) ou via `dotnet user-secrets`. As credenciais do banco em `docker-compose.yml`/`appsettings.json` (`postgres`/`postgres`) são só para uso local — troque antes de qualquer deploy real.
 
 ## Segurança implementada
 

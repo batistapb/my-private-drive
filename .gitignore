@@ -715,6 +715,7 @@ dist
 # Arquivos de ambiente
 .env
 .env.*
+!.env.example
 
 # Configurações locais
 appsettings.Development.json
