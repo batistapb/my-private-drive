@@ -4,6 +4,8 @@ import { api } from "../api";
 import { useToast } from "../ToastContext";
 import Layout from "../components/Layout";
 
+const primaryBtn = "rounded-md bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700";
+
 export default function Search() {
   const [searchParams] = useSearchParams();
   const q = searchParams.get("q") || "";
@@ -47,7 +49,7 @@ export default function Search() {
               </div>
               <Link
                 to={item.type === "folder" ? `/folders/${item.id}` : item.parentFolderId ? `/folders/${item.parentFolderId}` : "/"}
-                className="text-sm text-blue-600 hover:underline dark:text-blue-400"
+                className={primaryBtn}
               >
                 Abrir
               </Link>

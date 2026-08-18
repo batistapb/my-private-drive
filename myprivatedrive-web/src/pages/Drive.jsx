@@ -5,6 +5,10 @@ import { useToast } from "../ToastContext";
 import Layout from "../components/Layout";
 import FilePreviewModal from "../components/FilePreviewModal";
 
+const dangerBtn = "rounded-md bg-red-600 px-2 py-1 text-xs font-medium text-white hover:bg-red-700";
+const primaryBtn = "rounded-md bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700";
+const neutralBtn = "rounded-md bg-neutral-500 px-2 py-1 text-xs font-medium text-white hover:bg-neutral-600";
+
 function formatSize(bytes) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -47,6 +51,9 @@ export default function Drive() {
   const [previewFile, setPreviewFile] = useState(null);
   const [renamingFolderId, setRenamingFolderId] = useState(null);
   const [renameValue, setRenameValue] = useState("");
+  const [movingFolderId, setMovingFolderId] = useState(null);
+  const [organizations, setOrganizations] = useState([]);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -63,10 +70,18 @@ export default function Drive() {
     load();
   }, [load]);
 
-  async function handleUpload(event) {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const loadOrganizations = useCallback(() => {
+    api
+      .get("/organizations")
+      .then(({ data }) => setOrganizations(data))
+      .catch(() => {});
+  }, []);
 
+  useEffect(() => {
+    loadOrganizations();
+  }, [loadOrganizations]);
+
+  async function uploadFile(file) {
     const formData = new FormData();
     formData.append("file", file);
 
@@ -74,12 +89,41 @@ export default function Drive() {
       const query = folderId ? `?folderId=${folderId}` : "";
       await api.post(`/files/upload${query}`, formData);
       showToast(`"${file.name}" enviado com sucesso.`);
-      await load();
     } catch {
-      showToast("Falha no upload do arquivo.", "error");
-    } finally {
-      event.target.value = "";
+      showToast(`Falha no upload de "${file.name}".`, "error");
     }
+  }
+
+  async function handleUpload(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    await uploadFile(file);
+    await load();
+    event.target.value = "";
+  }
+
+  function handleDragOver(event) {
+    event.preventDefault();
+    setIsDraggingOver(true);
+  }
+
+  function handleDragLeave(event) {
+    event.preventDefault();
+    setIsDraggingOver(false);
+  }
+
+  async function handleDrop(event) {
+    event.preventDefault();
+    setIsDraggingOver(false);
+
+    const files = Array.from(event.dataTransfer.files || []);
+    if (files.length === 0) return;
+
+    for (const file of files) {
+      await uploadFile(file);
+    }
+    await load();
   }
 
   async function handleDownload(file) {
@@ -126,6 +170,20 @@ export default function Drive() {
       await load();
     } catch {
       showToast("Falha ao renomear pasta.", "error");
+    }
+  }
+
+  async function handleMoveFolder(folder, destination) {
+    if (!destination) return;
+
+    try {
+      const body = destination === "root" ? { moveToRoot: true } : { parentFolderId: destination };
+      await api.put(`/folders/${folder.id}`, body);
+      showToast(`Pasta "${folder.name}" movida.`);
+      setMovingFolderId(null);
+      await load();
+    } catch {
+      showToast("Falha ao mover pasta.", "error");
     }
   }
 
@@ -197,75 +255,113 @@ export default function Drive() {
         <input ref={fileInputRef} type="file" onChange={handleUpload} hidden />
       </div>
 
-      {contents === null && <LoadingSkeleton />}
+      <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={
+          "min-h-[6rem] rounded-md border-2 border-dashed p-2 transition-colors " +
+          (isDraggingOver
+            ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30"
+            : "border-transparent")
+        }
+      >
+        {contents === null && <LoadingSkeleton />}
 
-      {isEmpty && (
-        <p className="text-sm text-neutral-500 dark:text-neutral-400">Nenhum arquivo ou pasta aqui ainda.</p>
-      )}
+        {isEmpty && (
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">
+            Nenhum arquivo ou pasta aqui ainda. Arraste arquivos aqui para enviar.
+          </p>
+        )}
 
-      {contents && !isEmpty && (
-        <ul className="divide-y divide-neutral-200 dark:divide-neutral-700">
-          {contents.subfolders.map((folder) => (
-            <li key={folder.id} className="flex items-center justify-between py-2">
-              {renamingFolderId === folder.id ? (
-                <form onSubmit={(e) => submitRename(e, folder.id)} className="flex flex-1 gap-2">
-                  <input
-                    type="text"
-                    value={renameValue}
-                    onChange={(e) => setRenameValue(e.target.value)}
-                    autoFocus
-                    className="flex-1 rounded-md border border-neutral-300 bg-white px-2 py-1 text-sm dark:border-neutral-600 dark:bg-neutral-800"
-                  />
-                  <button type="submit" className="text-sm text-blue-600 hover:underline dark:text-blue-400">Salvar</button>
-                  <button type="button" onClick={() => setRenamingFolderId(null)} className="text-sm text-neutral-500 hover:underline">Cancelar</button>
-                </form>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => handleToggleFolderFavorite(folder)}
-                    className="text-amber-400"
-                    title={folder.isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-                  >
-                    {folder.isFavorite ? "★" : "☆"}
+        {contents && !isEmpty && (
+          <ul className="divide-y divide-neutral-200 dark:divide-neutral-700">
+            {contents.subfolders.map((folder) => (
+              <li key={folder.id} className="flex items-center justify-between py-2">
+                {renamingFolderId === folder.id ? (
+                  <form onSubmit={(e) => submitRename(e, folder.id)} className="flex flex-1 gap-2">
+                    <input
+                      type="text"
+                      value={renameValue}
+                      onChange={(e) => setRenameValue(e.target.value)}
+                      autoFocus
+                      className="flex-1 rounded-md border border-neutral-300 bg-white px-2 py-1 text-sm dark:border-neutral-600 dark:bg-neutral-800"
+                    />
+                    <button type="submit" className={primaryBtn}>Salvar</button>
+                    <button type="button" onClick={() => setRenamingFolderId(null)} className={neutralBtn}>Cancelar</button>
+                  </form>
+                ) : movingFolderId === folder.id ? (
+                  <div className="flex flex-1 items-center gap-2">
+                    <span className="flex-1 text-sm">Mover "{folder.name}" para:</span>
+                    <select
+                      autoFocus
+                      defaultValue=""
+                      onChange={(e) => handleMoveFolder(folder, e.target.value)}
+                      className="rounded-md border border-neutral-300 bg-white px-2 py-1 text-sm dark:border-neutral-600 dark:bg-neutral-800"
+                    >
+                      <option value="" disabled>Selecione o destino...</option>
+                      <option value="root">Meus Arquivos (raiz)</option>
+                      {organizations.map((org) => (
+                        <option key={org.id} value={org.rootFolderId}>{org.name}</option>
+                      ))}
+                    </select>
+                    <button type="button" onClick={() => setMovingFolderId(null)} className={neutralBtn}>Cancelar</button>
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleFolderFavorite(folder)}
+                      className="text-amber-400"
+                      title={folder.isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                    >
+                      {folder.isFavorite ? "★" : "☆"}
+                    </button>
+                    <Link to={`/folders/${folder.id}`} className="ml-2 flex-1 hover:underline">📁 {folder.name}</Link>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => startRename(folder)} className={neutralBtn}>
+                        Renomear
+                      </button>
+                      <button type="button" onClick={() => { loadOrganizations(); setMovingFolderId(folder.id); }} className={neutralBtn}>
+                        Mover
+                      </button>
+                      <button type="button" onClick={() => handleDeleteFolder(folder)} className={dangerBtn}>
+                        Excluir
+                      </button>
+                    </div>
+                  </>
+                )}
+              </li>
+            ))}
+
+            {contents.files.map((file) => (
+              <li
+                key={file.id}
+                onDoubleClick={() => setPreviewFile(file)}
+                className="flex items-center justify-between py-2"
+              >
+                <button
+                  type="button"
+                  onClick={() => handleToggleFileFavorite(file)}
+                  className="text-amber-400"
+                  title={file.isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                >
+                  {file.isFavorite ? "★" : "☆"}
+                </button>
+                <span className="ml-2 flex-1">📄 {file.originalName} ({formatSize(file.sizeBytes)})</span>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => handleDownload(file)} className={primaryBtn}>
+                    Baixar
                   </button>
-                  <Link to={`/folders/${folder.id}`} className="ml-2 flex-1 hover:underline">📁 {folder.name}</Link>
-                  <button type="button" onClick={() => startRename(folder)} className="text-sm text-neutral-500 hover:underline dark:text-neutral-400">
-                    Renomear
-                  </button>
-                  <button type="button" onClick={() => handleDeleteFolder(folder)} className="ml-3 text-sm text-red-600 hover:underline dark:text-red-400">
+                  <button type="button" onClick={() => handleDeleteFile(file)} className={dangerBtn}>
                     Excluir
                   </button>
-                </>
-              )}
-            </li>
-          ))}
-
-          {contents.files.map((file) => (
-            <li
-              key={file.id}
-              onDoubleClick={() => setPreviewFile(file)}
-              className="flex items-center justify-between py-2"
-            >
-              <button
-                type="button"
-                onClick={() => handleToggleFileFavorite(file)}
-                className="text-amber-400"
-                title={file.isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-              >
-                {file.isFavorite ? "★" : "☆"}
-              </button>
-              <span className="ml-2 flex-1">📄 {file.originalName} ({formatSize(file.sizeBytes)})</span>
-              <button type="button" onClick={() => handleDownload(file)} className="text-sm text-blue-600 hover:underline dark:text-blue-400">
-                Baixar
-              </button>
-              <button type="button" onClick={() => handleDeleteFile(file)} className="ml-3 text-sm text-red-600 hover:underline dark:text-red-400">
-                Excluir
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       {previewFile && (
         <FilePreviewModal file={previewFile} onClose={() => setPreviewFile(null)} />

@@ -3,6 +3,9 @@ import { api } from "../api";
 import { useToast } from "../ToastContext";
 import Layout from "../components/Layout";
 
+const dangerBtn = "rounded-md bg-red-600 px-2 py-1 text-xs font-medium text-white hover:bg-red-700";
+const primaryBtn = "rounded-md bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700";
+
 export default function Trash() {
   const { showToast } = useToast();
   const [items, setItems] = useState(null);
@@ -57,16 +60,14 @@ export default function Trash() {
               <span className="flex-1">
                 {item.type === "folder" ? "📁" : "📄"} {item.name}
               </span>
-              <button type="button" onClick={() => handleRestore(item)} className="text-sm text-blue-600 hover:underline dark:text-blue-400">
-                Restaurar
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDeletePermanently(item)}
-                className="ml-3 text-sm text-red-600 hover:underline dark:text-red-400"
-              >
-                Excluir definitivamente
-              </button>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => handleRestore(item)} className={primaryBtn}>
+                  Restaurar
+                </button>
+                <button type="button" onClick={() => handleDeletePermanently(item)} className={dangerBtn}>
+                  Excluir definitivamente
+                </button>
+              </div>
             </li>
           ))}
         </ul>
