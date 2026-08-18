@@ -41,8 +41,10 @@ public class FoldersController(AppDbContext db, IContentTypeProvider contentType
             ancestors = await GetAncestorsAsync(folder.ParentFolderId);
         }
 
+        // At the true root (id == null), organization root folders (which also have ParentFolderId == null)
+        // must be excluded — they surface via the organizations list/tabs, not "Meus Arquivos".
         var subfolders = await db.Folders
-            .Where(f => f.OwnerId == CurrentUserId && f.ParentFolderId == id)
+            .Where(f => f.OwnerId == CurrentUserId && f.ParentFolderId == id && (id != null || f.OrganizationId == null))
             .Select(f => new FolderDto(f.Id, f.Name, f.ParentFolderId, f.OrganizationId, f.CreatedAt))
             .ToListAsync();
 
