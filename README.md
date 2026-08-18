@@ -8,26 +8,33 @@ O objetivo é ter um lugar próprio para guardar arquivos, com login, upload/dow
 
 Funcionalidades:
 
-- Cadastro e login
-- Upload e download de arquivos
+- Cadastro e login, com JWT (access token) + refresh token e renovação automática
+- Upload e download de arquivos, com arrastar-e-soltar direto na página
 - Visualização de imagens, PDF e texto direto no site (duplo clique abre um preview, sem precisar baixar)
-- Listagem, organização e navegação em pastas (árvore, com breadcrumb e renomear)
-- Edição de perfil, troca de senha e exclusão de conta
+- Listagem, organização e navegação em pastas (árvore, com breadcrumb, renomear e mover)
+- **Organizações** — espaços nomeados com pasta raiz própria, para separar contextos diferentes; pastas existentes podem ser movidas para dentro de uma organização, não só criadas lá
+- **Mapa** — vista em árvore expansível/colapsável da estrutura de pastas de uma organização
+- **Lixeira** — exclusão de arquivo/pasta é reversível (pasta exclui em cascata todo o conteúdo), com restauração e expiração automática após 30 dias
+- **Favoritos** — marcar arquivos/pastas com estrela e ver tudo numa página só
+- **Busca** — por nome de arquivo/pasta, case-insensitive, com o caminho de cada resultado
+- **Log de atividade** — histórico paginado de login, upload, download, exclusão, renomeação e troca de senha
+- **Rate limiting** — limite de tentativas de login/cadastro e limite geral nos demais endpoints
+- Edição de perfil, troca de senha (com campo de mostrar/ocultar) e exclusão de conta
 - Tema claro/escuro (padrão escuro), com preferência salva no navegador
-- Autenticação via JWT com renovação automática (refresh token)
+- Interface própria com sistema de design consistente (paleta, cartões com ícone, avatares) em toda a aplicação
 
 ## Arquitetura
 
 O backend segue uma Clean Architecture simplificada, em 4 camadas:
 
 ```
-MyPrivateDrive.Api             → Controllers, autenticação, ponto de entrada HTTP
+MyPrivateDrive.Api             → Controllers, autenticação, rate limiting, background services, ponto de entrada HTTP
 MyPrivateDrive.Application      → DTOs, interfaces, configurações (sem dependência de framework/banco)
-MyPrivateDrive.Domain           → Entidades (User, FileItem, Folder, RefreshToken)
-MyPrivateDrive.Infrastructure   → EF Core, PostgreSQL, geração de tokens JWT, hashing
+MyPrivateDrive.Domain           → Entidades (User, FileItem, Folder, RefreshToken, Organization, ActivityLog)
+MyPrivateDrive.Infrastructure   → EF Core, PostgreSQL, geração de tokens JWT, hashing, log de atividade
 ```
 
-Regra de dependência: `Domain` não depende de nada; `Application` depende só do `Domain`; `Infrastructure` implementa o que `Application`/`Domain` definem; `Api` conhece todas as camadas para fazer a injeção de dependência.
+Regra de dependência: `Domain` não depende de nada; `Application` depende só do `Domain`; `Infrastructure` implementa o que `Application`/`Domain` definem; `Api` conhece todas as camadas para fazer a injeção de dependência. A maior parte da lógica fica direto nos Controllers (sem camada de repositório), exceto o log de atividade — `IActivityLogger` fica em `Application`, `ActivityLogger` (implementação) em `Infrastructure`.
 
 ```
 myprivatedrive-web/             → Frontend React + Vite (SPA)
@@ -39,8 +46,9 @@ myprivatedrive-web/             → Frontend React + Vite (SPA)
 |---|---|
 | Backend | ASP.NET Core 9 Web API (C#) |
 | Banco de dados | PostgreSQL 16 |
-| ORM | Entity Framework Core |
+| ORM | Entity Framework Core (com global query filter para soft-delete) |
 | Autenticação | JWT (access token) + Refresh Token, senhas com BCrypt |
+| Rate limiting | `Microsoft.AspNetCore.RateLimiting` (nativo do ASP.NET Core) |
 | Frontend | React 19 + Vite, Tailwind CSS v4, react-router-dom, axios |
 | Proxy / servidor web | Nginx |
 | Containerização | Docker + Docker Compose |
@@ -49,10 +57,10 @@ myprivatedrive-web/             → Frontend React + Vite (SPA)
 
 ```
 MyPrivateDrive.sln
-MyPrivateDrive.Api/             # Web API — Controllers, Program.cs, Dockerfile
-MyPrivateDrive.Application/     # DTOs e interfaces (Auth, Users, Files, Folders)
+MyPrivateDrive.Api/             # Web API — Controllers, Program.cs, BackgroundServices, Dockerfile
+MyPrivateDrive.Application/     # DTOs e interfaces (Auth, Users, Files, Folders, Organizations, Trash, Favorites, Search, Activity)
 MyPrivateDrive.Domain/          # Entidades
-MyPrivateDrive.Infrastructure/  # DbContext, migrations, TokenService
+MyPrivateDrive.Infrastructure/  # DbContext, migrations, TokenService, ActivityLogger
 myprivatedrive-web/             # Frontend React + Vite, Dockerfile, nginx.conf
 docker-compose.yml              # api + db + nginx
 ```
@@ -95,7 +103,7 @@ Para derrubar tudo: `docker compose down` (os dados do banco e os arquivos envia
      postgres:16
    ```
 
-2. Rodar a API (aplica as migrations automaticamente no startup):
+2. Definir o segredo do JWT em `MyPrivateDrive.Api/appsettings.Development.json` (não é versionado — veja a seção [Configuração](#configuração)), depois rodar a API (aplica as migrations automaticamente no startup):
    ```bash
    cd MyPrivateDrive.Api
    dotnet run
@@ -124,13 +132,27 @@ Para derrubar tudo: `docker compose down` (os dados do banco e os arquivos envia
 | POST | `/api/files/upload` | sim | Upload de arquivo (`multipart/form-data`, `folderId` opcional) |
 | GET | `/api/files/{id}/download` | sim | Download de um arquivo |
 | GET | `/api/files/{id}/preview` | sim | Visualiza o arquivo inline — imagens, PDF, texto (415 para outros tipos) |
-| POST | `/api/folders` | sim | Cria pasta |
-| GET | `/api/folders` | sim | Lista conteúdo da raiz |
+| DELETE | `/api/files/{id}` | sim | Move o arquivo para a lixeira |
+| PUT | `/api/files/{id}/favorite` | sim | Alterna favorito |
+| GET | `/api/folders` | sim | Lista conteúdo da raiz ("Meus Arquivos") |
 | GET | `/api/folders/{id}` | sim | Lista conteúdo de uma pasta |
-| PUT | `/api/folders/{id}` | sim | Renomeia e/ou move (`moveToRoot: true` para mover à raiz) |
-| DELETE | `/api/folders/{id}` | sim | Exclui pasta (bloqueado se não estiver vazia) |
+| POST | `/api/folders` | sim | Cria pasta |
+| PUT | `/api/folders/{id}` | sim | Renomeia e/ou move (`moveToRoot: true` para mover à raiz; move para dentro de uma organização atualiza a organização em cascata) |
+| DELETE | `/api/folders/{id}` | sim | Move a pasta (e todo o conteúdo) para a lixeira |
+| PUT | `/api/folders/{id}/favorite` | sim | Alterna favorito |
+| GET | `/api/organizations` | sim | Lista as organizações do usuário |
+| GET | `/api/organizations/{id}` | sim | Detalhes de uma organização |
+| POST | `/api/organizations` | sim | Cria organização (e a pasta raiz, na mesma operação) |
+| GET | `/api/organizations/{id}/map` | sim | Árvore de pastas da organização |
+| DELETE | `/api/organizations/{id}` | sim | Exclui a organização (bloqueado se a pasta raiz não estiver vazia) |
+| GET | `/api/trash` | sim | Lista itens na lixeira (só o item excluído originalmente, não cada descendente) |
+| POST | `/api/trash/{id}/restore` | sim | Restaura um item (e sua subárvore, se for pasta) |
+| DELETE | `/api/trash/{id}/permanent` | sim | Exclui definitivamente |
+| GET | `/api/favorites` | sim | Lista tudo que está marcado com estrela |
+| GET | `/api/search?q=` | sim | Busca por nome (case-insensitive) em arquivos e pastas |
+| GET | `/api/activity?page=&pageSize=` | sim | Histórico paginado de atividade da conta |
 
-Endpoints autenticados esperam o header `Authorization: Bearer <accessToken>`. O arquivo `MyPrivateDrive.Api/MyPrivateDrive.Api.http` tem exemplos prontos para testar direto no VS Code (extensão REST Client).
+Endpoints autenticados esperam o header `Authorization: Bearer <accessToken>`. Os endpoints de `/api/auth` têm limite de 5 requisições/minuto; os demais, 100/minuto (limite global do servidor, não por IP). O arquivo `MyPrivateDrive.Api/MyPrivateDrive.Api.http` tem exemplos prontos para testar direto no VS Code (extensão REST Client).
 
 ## Configuração
 
@@ -146,9 +168,12 @@ As chaves relevantes ficam em `MyPrivateDrive.Api/appsettings.json`:
 
 - Senhas com hash via BCrypt (nunca em texto puro)
 - Access token JWT de vida curta (15 min) + refresh token de vida longa, com rotação (o token antigo é revogado a cada uso)
+- Segredo de assinatura do JWT fora do controle de versão (variável de ambiente / `dotnet user-secrets`), nunca commitado
+- Rate limiting: janela fixa de 5 requisições/minuto em `/api/auth/*` (mitiga força bruta em login/cadastro), 100/minuto nos demais endpoints
 - Toda ação sobre "meu" recurso (perfil, arquivos, pastas) usa o ID extraído do token — nunca um ID enviado pelo cliente
 - Upload: nome físico do arquivo é sempre um GUID aleatório (evita colisão e *path traversal*), limite de tamanho e bloqueio de extensões perigosas (`.exe`, `.sh`, `.bat`, etc.)
 - Acesso a arquivo/pasta de outro usuário retorna `404` (não `403`), para não revelar que o recurso existe
+- Exclusão é reversível (soft-delete via *global query filter* do EF Core) — nada some de verdade até a lixeira expirar ou o usuário confirmar a exclusão definitiva
 - CORS restrito à origem do frontend em desenvolvimento (`http://localhost:5173`); em produção (Docker Compose), frontend e API são servidos pela mesma origem via Nginx, dispensando CORS
 
 ## Como o projeto foi construído
@@ -167,10 +192,18 @@ O desenvolvimento seguiu uma ordem incremental, uma camada de cada vez, com test
 10. **Aba de Configurações** — dados da conta e troca de senha (exigindo a senha atual).
 11. **Tema claro/escuro** — contexto React com preferência persistida no navegador, padrão escuro.
 12. **Refinamento visual geral** — adoção do Tailwind CSS, layout com barra lateral, breadcrumb de pastas, notificações toast e estados vazio/carregamento.
+13. **Rate limiting** — política restrita nos endpoints de autenticação, política geral nos demais.
+14. **Organizações** — entidade com pasta raiz própria, criada na mesma transação que a organização; pastas existentes também podem ser movidas para dentro de uma organização (com atualização em cascata para as subpastas).
+15. **Mapa** — árvore de pastas de uma organização, montada em memória a partir de uma única consulta.
+16. **Lixeira com restauração** — soft-delete via *global query filter* do EF Core, para não precisar alterar cada consulta existente; exclusão de pasta cascade nas subpastas/arquivos; `BackgroundService` expira itens com mais de 30 dias.
+17. **Favoritos** — campo booleano em arquivo/pasta, com página dedicada listando tudo.
+18. **Busca** — por nome, case-insensitive (`ILIKE` do PostgreSQL), com o caminho de cada resultado.
+19. **Log de atividade** — serviço central (`IActivityLogger`) injetado nos endpoints, histórico paginado na tela de Configurações.
+20. **Redesign visual completo** — novo sistema de design (paleta, cartões com ícone, avatares) aplicado a toda a aplicação; fundo animado (WebGL) nas telas de login/cadastro; upload por arrastar-e-soltar.
 
 ## Objetivos futuros
 
-Compartilhamento por link, sincronização, cliente desktop, aplicativo mobile, versionamento de arquivos, miniaturas, pesquisa e criptografia em repouso.
+Compartilhamento por link, sincronização, cliente desktop, aplicativo mobile, versionamento de arquivos, miniaturas e criptografia em repouso.
 
 ## Licença
 
