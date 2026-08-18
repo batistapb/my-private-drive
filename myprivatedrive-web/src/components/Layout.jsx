@@ -105,13 +105,24 @@ export default function Layout({ children }) {
 
           <nav className="mt-2 flex flex-col gap-1">
             {organizations.map((org) => (
-              <NavLink
-                key={org.id}
-                to={`/folders/${org.rootFolderId}`}
-                className={() => orgLinkClass(folderId === org.rootFolderId)}
-              >
-                {org.name}
-              </NavLink>
+              <div key={org.id} className="flex items-center gap-1">
+                <NavLink
+                  to={`/folders/${org.rootFolderId}`}
+                  className={() => "flex-1 " + orgLinkClass(folderId === org.rootFolderId)}
+                >
+                  {org.name}
+                </NavLink>
+                <NavLink
+                  to={`/organizations/${org.id}/map`}
+                  title="Mapa"
+                  className={({ isActive }) =>
+                    "px-1 text-sm " +
+                    (isActive ? "text-blue-600 dark:text-blue-400" : "text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200")
+                  }
+                >
+                  🗺
+                </NavLink>
+              </div>
             ))}
             {organizations.length === 0 && !creatingOrg && (
               <span className="px-3 text-sm text-neutral-500 dark:text-neutral-400">Nenhuma ainda</span>

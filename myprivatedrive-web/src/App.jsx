@@ -4,6 +4,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Drive from "./pages/Drive";
 import Settings from "./pages/Settings";
+import OrganizationMap from "./pages/OrganizationMap";
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
           <Route path="/" element={<Drive />} />
           <Route path="/folders/:folderId" element={<Drive />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/organizations/:orgId/map" element={<OrganizationMap />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

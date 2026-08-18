@@ -69,6 +69,40 @@ public class OrganizationsController(AppDbContext db) : ControllerBase
         return Ok(ToDto(organization));
     }
 
+    [HttpGet("{id:guid}/map")]
+    public async Task<IActionResult> GetMap(Guid id)
+    {
+        var organization = await db.Organizations.SingleOrDefaultAsync(o => o.Id == id && o.OwnerId == CurrentUserId);
+        if (organization is null) return NotFound();
+
+        var folders = await db.Folders.Where(f => f.OrganizationId == id).ToListAsync();
+        var tree = BuildTree(folders, organization.RootFolderId);
+        if (tree is null) return NotFound();
+
+        return Ok(tree);
+    }
+
+    private static FolderTreeNodeDto? BuildTree(List<Folder> folders, Guid rootId)
+    {
+        var childrenByParent = folders
+            .Where(f => f.ParentFolderId is not null)
+            .GroupBy(f => f.ParentFolderId!.Value)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        var root = folders.SingleOrDefault(f => f.Id == rootId);
+        if (root is null) return null;
+
+        FolderTreeNodeDto Build(Folder folder)
+        {
+            var children = childrenByParent.TryGetValue(folder.Id, out var kids)
+                ? kids.Select(Build).ToList()
+                : new List<FolderTreeNodeDto>();
+            return new FolderTreeNodeDto(folder.Id, folder.Name, children);
+        }
+
+        return Build(root);
+    }
+
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
