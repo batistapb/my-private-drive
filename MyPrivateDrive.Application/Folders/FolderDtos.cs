@@ -2,7 +2,7 @@ using MyPrivateDrive.Application.Files;
 
 namespace MyPrivateDrive.Application.Folders;
 
-public record FolderDto(Guid Id, string Name, Guid? ParentFolderId, DateTime CreatedAt);
+public record FolderDto(Guid Id, string Name, Guid? ParentFolderId, Guid? OrganizationId, DateTime CreatedAt);
 
 public record CreateFolderRequest(string Name, Guid? ParentFolderId);
 

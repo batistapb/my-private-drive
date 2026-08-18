@@ -43,7 +43,7 @@ public class FoldersController(AppDbContext db, IContentTypeProvider contentType
 
         var subfolders = await db.Folders
             .Where(f => f.OwnerId == CurrentUserId && f.ParentFolderId == id)
-            .Select(f => new FolderDto(f.Id, f.Name, f.ParentFolderId, f.CreatedAt))
+            .Select(f => new FolderDto(f.Id, f.Name, f.ParentFolderId, f.OrganizationId, f.CreatedAt))
             .ToListAsync();
 
         var files = (await db.Files
@@ -79,16 +79,21 @@ public class FoldersController(AppDbContext db, IContentTypeProvider contentType
         if (string.IsNullOrWhiteSpace(request.Name))
             return BadRequest("Nome da pasta é obrigatório.");
 
-        if (request.ParentFolderId is not null &&
-            !await db.Folders.AnyAsync(f => f.Id == request.ParentFolderId && f.OwnerId == CurrentUserId))
-            return BadRequest("Pasta pai inválida.");
+        Guid? organizationId = null;
+        if (request.ParentFolderId is not null)
+        {
+            var parent = await db.Folders.SingleOrDefaultAsync(f => f.Id == request.ParentFolderId && f.OwnerId == CurrentUserId);
+            if (parent is null) return BadRequest("Pasta pai inválida.");
+            organizationId = parent.OrganizationId;
+        }
 
         var folder = new Folder
         {
             Id = Guid.NewGuid(),
             Name = request.Name,
             ParentFolderId = request.ParentFolderId,
-            OwnerId = CurrentUserId
+            OwnerId = CurrentUserId,
+            OrganizationId = organizationId
         };
 
         db.Folders.Add(folder);
@@ -168,5 +173,5 @@ public class FoldersController(AppDbContext db, IContentTypeProvider contentType
         return false;
     }
 
-    private static FolderDto ToDto(Folder f) => new(f.Id, f.Name, f.ParentFolderId, f.CreatedAt);
+    private static FolderDto ToDto(Folder f) => new(f.Id, f.Name, f.ParentFolderId, f.OrganizationId, f.CreatedAt);
 }

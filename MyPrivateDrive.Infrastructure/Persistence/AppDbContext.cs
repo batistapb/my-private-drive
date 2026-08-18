@@ -11,6 +11,7 @@ public class AppDbContext : DbContext
     public DbSet<FileItem> Files => Set<FileItem>();
     public DbSet<Folder> Folders => Set<Folder>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<Organization> Organizations => Set<Organization>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
