@@ -1,4 +1,7 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { NavLink, useNavigate, useParams } from "react-router-dom";
+import { api } from "../api";
+import { useToast } from "../ToastContext";
 
 const navLinkClass = ({ isActive }) =>
   "block rounded-md px-3 py-2 text-sm font-medium transition-colors " +
@@ -6,13 +9,54 @@ const navLinkClass = ({ isActive }) =>
     ? "bg-blue-600 text-white"
     : "text-neutral-700 hover:bg-neutral-200 dark:text-neutral-300 dark:hover:bg-neutral-700");
 
+const orgLinkClass = (isActive) =>
+  "block truncate rounded-md px-3 py-1.5 text-sm transition-colors " +
+  (isActive
+    ? "bg-blue-600 text-white"
+    : "text-neutral-700 hover:bg-neutral-200 dark:text-neutral-300 dark:hover:bg-neutral-700");
+
 export default function Layout({ children }) {
   const navigate = useNavigate();
+  const { folderId } = useParams();
+  const { showToast } = useToast();
+
+  const [organizations, setOrganizations] = useState([]);
+  const [creatingOrg, setCreatingOrg] = useState(false);
+  const [newOrgName, setNewOrgName] = useState("");
+
+  const loadOrganizations = useCallback(async () => {
+    try {
+      const { data } = await api.get("/organizations");
+      setOrganizations(data);
+    } catch {
+      showToast("Não foi possível carregar as organizações.", "error");
+    }
+  }, [showToast]);
+
+  useEffect(() => {
+    loadOrganizations();
+  }, [loadOrganizations]);
 
   function handleLogout() {
     sessionStorage.removeItem("accessToken");
     sessionStorage.removeItem("refreshToken");
     navigate("/login");
+  }
+
+  async function handleCreateOrganization(event) {
+    event.preventDefault();
+    if (!newOrgName.trim()) return;
+
+    try {
+      const { data } = await api.post("/organizations", { name: newOrgName });
+      showToast(`Organização "${newOrgName}" criada.`);
+      setNewOrgName("");
+      setCreatingOrg(false);
+      await loadOrganizations();
+      navigate(`/folders/${data.rootFolderId}`);
+    } catch {
+      showToast("Falha ao criar organização.", "error");
+    }
   }
 
   return (
@@ -27,6 +71,54 @@ export default function Layout({ children }) {
             Configurações
           </NavLink>
         </nav>
+
+        <div className="mt-6">
+          <div className="flex items-center justify-between px-3">
+            <span className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+              Organizações
+            </span>
+            <button
+              type="button"
+              onClick={() => setCreatingOrg((v) => !v)}
+              className="text-sm text-blue-600 hover:underline dark:text-blue-400"
+              aria-label="Nova organização"
+            >
+              +
+            </button>
+          </div>
+
+          {creatingOrg && (
+            <form onSubmit={handleCreateOrganization} className="mt-2 flex flex-col gap-1 px-3">
+              <input
+                type="text"
+                placeholder="Nome da organização"
+                value={newOrgName}
+                onChange={(e) => setNewOrgName(e.target.value)}
+                autoFocus
+                className="rounded-md border border-neutral-300 bg-white px-2 py-1 text-sm dark:border-neutral-600 dark:bg-neutral-800"
+              />
+              <button type="submit" className="rounded-md bg-neutral-200 px-2 py-1 text-sm font-medium hover:bg-neutral-300 dark:bg-neutral-700 dark:hover:bg-neutral-600">
+                Criar
+              </button>
+            </form>
+          )}
+
+          <nav className="mt-2 flex flex-col gap-1">
+            {organizations.map((org) => (
+              <NavLink
+                key={org.id}
+                to={`/folders/${org.rootFolderId}`}
+                className={() => orgLinkClass(folderId === org.rootFolderId)}
+              >
+                {org.name}
+              </NavLink>
+            ))}
+            {organizations.length === 0 && !creatingOrg && (
+              <span className="px-3 text-sm text-neutral-500 dark:text-neutral-400">Nenhuma ainda</span>
+            )}
+          </nav>
+        </div>
+
         <button
           type="button"
           onClick={handleLogout}
