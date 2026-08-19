@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api";
 import { useToast } from "../ToastContext";
 import Layout from "../components/Layout";
@@ -18,11 +18,11 @@ function Breadcrumb({ ancestors, current }) {
 
   return (
     <div className={"mb-1.5 flex flex-wrap items-center gap-1.5 text-xs " + T.textTertiary}>
-      <Link to="/" className="hover:underline">MyPrivateDrive</Link>
+      <Link to="/" className={T.linkHover}>MyPrivateDrive</Link>
       {trail.map((folder) => (
         <span key={folder.id} className="flex items-center gap-1.5">
           <span>/</span>
-          <Link to={`/folders/${folder.id}`} className="hover:underline">{folder.name}</Link>
+          <Link to={`/folders/${folder.id}`} className={T.linkHover}>{folder.name}</Link>
         </span>
       ))}
     </div>
@@ -40,6 +40,7 @@ function LoadingSkeleton() {
 }
 
 export default function Drive() {
+  const navigate = useNavigate();
   const { folderId } = useParams();
   const fileInputRef = useRef(null);
   const { showToast } = useToast();
@@ -288,7 +289,19 @@ export default function Drive() {
           {contents && !isEmpty && (
             <ul>
               {contents.subfolders.map((folder) => (
-                <li key={folder.id} className={"flex items-center justify-between border-b px-5 py-3 last:border-0 " + T.borderSoft}>
+                <li
+                  key={folder.id}
+                  onClick={
+                    renamingFolderId === folder.id || movingFolderId === folder.id
+                      ? undefined
+                      : () => navigate(`/folders/${folder.id}`)
+                  }
+                  className={
+                    "flex items-center justify-between border-b px-5 py-3 last:border-0 transition-colors hover:bg-[#3b6fef]/6 dark:hover:bg-[#5b8cff]/10 " +
+                    T.borderSoft +
+                    (renamingFolderId === folder.id || movingFolderId === folder.id ? "" : " cursor-pointer")
+                  }
+                >
                   {renamingFolderId === folder.id ? (
                     <form onSubmit={(e) => submitRename(e, folder.id)} className="flex flex-1 gap-2">
                       <input
@@ -322,17 +335,17 @@ export default function Drive() {
                     <>
                       <button
                         type="button"
-                        onClick={() => handleToggleFolderFavorite(folder)}
+                        onClick={(e) => { e.stopPropagation(); handleToggleFolderFavorite(folder); }}
                         className="text-amber-400"
                         title={folder.isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
                       >
                         <StarIcon className="h-4 w-4" filled={folder.isFavorite} />
                       </button>
-                      <Link to={`/folders/${folder.id}`} className="ml-3 flex flex-1 items-center gap-2.5 hover:underline">
+                      <span className={"ml-3 flex flex-1 items-center gap-2.5 " + T.linkHover}>
                         <FolderIcon className={"h-4 w-4 shrink-0 " + T.accentText} />
                         {folder.name}
-                      </Link>
-                      <div className="flex gap-1.5">
+                      </span>
+                      <div className="flex gap-1.5" onClick={(e) => e.stopPropagation()}>
                         <button type="button" onClick={() => startRename(folder)} className={T.btnGhostSm} title="Renomear">
                           <EditIcon className="h-3.5 w-3.5" />
                         </button>

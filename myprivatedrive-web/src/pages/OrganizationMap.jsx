@@ -25,7 +25,7 @@ function FolderTreeNode({ node }) {
         ) : (
           <span className="w-4" />
         )}
-        <Link to={`/folders/${node.id}`} className="flex items-center gap-2 text-sm hover:underline">
+        <Link to={`/folders/${node.id}`} className={"flex items-center gap-2 text-sm " + T.linkHover}>
           <FolderIcon className={"h-3.5 w-3.5 shrink-0 " + T.accentText} />
           {node.name}
         </Link>

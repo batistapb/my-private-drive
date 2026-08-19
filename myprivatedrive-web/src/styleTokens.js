@@ -47,6 +47,8 @@ export const T = {
   navItemActive:
     "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-semibold bg-[#3b6fef]/8 dark:bg-[#5b8cff]/12 text-[#3b6fef] dark:text-[#5b8cff]",
 
+  linkHover: "transition-colors hover:text-[#3b6fef] dark:hover:text-[#5b8cff]",
+
   avatarGradientPink: "bg-gradient-to-br from-[#f472b6] to-[#a855f7]",
   avatarGradientBlue: "bg-gradient-to-br from-[#34d399] to-[#22a3e0]",
 };
